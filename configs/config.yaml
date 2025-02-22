@@ -1,1 +1,8 @@
-#Here we will hyper params n shii
+defaults:
+  - _self_
+  - training: training_config
+  - optimizer: adam
+  - models: vae
+  - priors: mog
+
+latent_dim: 10

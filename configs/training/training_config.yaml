@@ -1,0 +1,7 @@
+# Hyperparameters for training the model
+batch_size: 128
+epochs: 10
+
+# paths
+model_path: models/
+

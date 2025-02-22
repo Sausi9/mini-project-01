@@ -1,0 +1,3 @@
+prior:
+  _target_: models.priors.GaussianPrior
+  M: ${latent_dim}
