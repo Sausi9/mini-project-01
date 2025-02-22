@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mini_project_01"
+version = "0.0.1"
+description = "Mini project 1 for the course Advanced Machine Learning (02460) at DTU"
+authors = [
+  { name = "bruzz", email = "your@email.com" },
+]
+
+keywords = ["machine learning", "VAE", "variational autoencoder", "pytorch", "torch", "flow", "normalizing flow", "diffusion", "diffusion model", "deep learning"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["dependencies", "optional-dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+

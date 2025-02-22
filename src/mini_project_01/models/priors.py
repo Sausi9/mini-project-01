@@ -1,0 +1,1 @@
+# Standard gaussian prior -  mixture of gaussians prior -  vamp prior
