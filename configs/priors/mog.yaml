@@ -1,0 +1,4 @@
+prior:
+  _target_: models.priors.MoGPrior
+  M: ${latent_dim}
+  K: 10

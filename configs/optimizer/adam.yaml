@@ -1,0 +1,5 @@
+# Optimizer:
+_target_: torch.optim.Adam
+
+# Hyperparameters:
+lr: 1e-3
