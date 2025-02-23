@@ -25,7 +25,7 @@ class VAE(nn.Module):
                 The encoder distribution over the latent space.
 
         The overall VAE objective is to maximize the Evidence Lower Bound (ELBO):
-        ELBO = E_{q_{\phi}(z|x)}[log p_{\theta}(x|z)] - KL(q_{\phi}(z|x) || p(z))
+        ELBO = E_{q_{phi}(z|x)}[log p_{\theta}(x|z)] - KL(q_{phi}(z|x) || p(z))
         """
 
         super(VAE, self).__init__()
@@ -82,7 +82,7 @@ class GaussianEncoder(nn.Module):
         """
         Define a Gaussian encoder distribution based on a given encoder network.
 
-        q_{\phi}(z|x) = N(z|mu(x), sigma(x))
+        q_{phi}(z|x) = N(z|mu(x), sigma(x))
         Where phi are the parameters of the encoder network i.e. weights and biases.
 
         Parameters:
