@@ -17,7 +17,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
-def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils.data.DataLoader, epochs: int):
+def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils.data.DataLoader, epochs: int) -> None:
     """
     Train a VAE model.
 
