@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as td
 import torch.utils.data
-
+from .vae import encoder_net, GaussianEncoder
 
 class GaussianPrior(nn.Module):
     def __init__(self, M):
@@ -74,7 +74,6 @@ class VampPrior(nn.Module):
       self.K = K
       
       # Create our own encoder network
-      from .vae import encoder_net, GaussianEncoder
       self.encoder = GaussianEncoder(encoder_net(M))
       
       self.pseudo_inputs = nn.Parameter(torch.randn(K, input_dim), requires_grad=True)
