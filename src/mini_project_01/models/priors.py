@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as td
 import torch.utils.data
-
+from .vae import encoder_net, GaussianEncoder
 
 class GaussianPrior(nn.Module):
     def __init__(self, M):
@@ -41,13 +41,13 @@ class MoGPrior(nn.Module):
         super(MoGPrior, self).__init__()
         self.M = M
         self.K = K
-        
+
         # Mixture weights (logits, unnormalized)
         self.logits = nn.Parameter(torch.randn(K), requires_grad=True)
 
         # Gaussian means and standard deviations (initialized around 0 and 1)
         self.means = nn.Parameter(torch.randn(K, M), requires_grad=True)
-        self.stds = nn.Parameter(torch.ones(K, M), requires_grad=True)
+        self.log_stds = nn.Parameter(torch.zeros(K, M), requires_grad=True)
 
     def forward(self):
         """
@@ -60,10 +60,41 @@ class MoGPrior(nn.Module):
         mixture_dist = td.Categorical(logits=self.logits)
 
         # Define the K Gaussian distributions
-        component_dist = td.Independent(td.Normal(self.means, self.stds), 1)
+        component_dist = td.Independent(td.Normal(self.means, torch.exp(self.log_stds)), 1)
 
         # Create the MixtureSameFamily distribution
         return td.MixtureSameFamily(mixture_dist, component_dist)
-    
+
 
 # TODO: Implement VampPrior class
+class VampPrior(nn.Module):
+    def __init__(self, M, K, input_dim):
+      super(VampPrior, self).__init__()
+      self.M = M
+      self.K = K
+      
+      # Create our own encoder network
+      self.encoder = GaussianEncoder(encoder_net(M))
+      
+      self.pseudo_inputs = nn.Parameter(torch.randn(K, input_dim), requires_grad=True)
+      self.logits = nn.Parameter(torch.zeros(K), requires_grad=True)
+      
+    def forward(self):
+      """
+      Return the Vamp prior.
+
+      Returns:
+      prior: [torch.distributions.Distribution]
+      """
+
+      q_pseudo = self.encoder(self.pseudo_inputs)
+
+      # Get the base distribution (Normal) from the Independent distribution
+      base_dist = q_pseudo.base_dist
+      means = base_dist.loc
+      stds = base_dist.scale
+
+      mixture_dist = td.Categorical(logits=self.logits)
+      component_dist = td.Independent(td.Normal(means, stds), 1)
+
+      return td.MixtureSameFamily(mixture_dist, component_dist)

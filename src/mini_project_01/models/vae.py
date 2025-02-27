@@ -33,6 +33,10 @@ class VAE(nn.Module):
         self.decoder = decoder
         self.encoder = encoder
 
+        # If using VampPrior, it needs access to the encoder
+        if hasattr(self.prior, 'encoder'):
+            self.prior.encoder = encoder
+
     def elbo(self, x, num_samples=5):
         """
         Compute the ELBO for the given batch of data.
@@ -74,6 +78,12 @@ class VAE(nn.Module):
         x: [torch.Tensor]
            A tensor of dimension `(batch_size, feature_dim1, feature_dim2)`
         """
+        # If using VampPrior, sync encoder parameters before computing ELBO
+        if hasattr(self.prior, 'encoder'):
+            with torch.no_grad():
+                for p1, p2 in zip(self.prior.encoder.parameters(), self.encoder.parameters()):
+                    p1.copy_(p2)
+        
         return -self.elbo(x)
 
 

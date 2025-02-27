@@ -1,4 +1,4 @@
-from models.priors import GaussianPrior, MoGPrior
+from models.priors import GaussianPrior, MoGPrior, VampPrior
 from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
 from data import load_mnist_dataset
 import torch.nn as nn
