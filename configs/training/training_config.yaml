@@ -1,6 +1,7 @@
 # Hyperparameters for training the model
-batch_size: 128
+batch_size: 64
 epochs: 10
+binarized: False
 
 # paths
 model_path: models/

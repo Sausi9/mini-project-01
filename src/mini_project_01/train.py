@@ -1,4 +1,5 @@
 from models.priors import GaussianPrior, MoGPrior, VampPrior
+from models.unet import Unet
 from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
 from data import load_mnist_dataset
 import torch.nn as nn
@@ -50,9 +51,14 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
     for epoch in range(epochs):
         data_iter = iter(data_loader)
         for x in data_iter:
-            x = x[0].to(DEVICE)
+            if isinstance(x, (list, tuple)):
+                x = x[0]
+            x = x.to(DEVICE)
             optimizer.zero_grad()
-            loss = model(x)
+            if cfg.models.name == 'ddpm':
+                loss = model.loss(x)
+            else:
+                loss = model(x)
             loss.backward()
             optimizer.step()
 
@@ -76,18 +82,20 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
 if __name__ == "__main__":
 
     # Load the MNIST dataset
-    train_loader, _ = load_mnist_dataset(batch_size=cfg.training.batch_size)
+    train_loader, _ = load_mnist_dataset(batch_size=cfg.training.batch_size,binarized=cfg.training.binarized)
+    if cfg.models.name == 'vae':
+        # Define prior distribution
+        M = cfg.latent_dim
 
-    # Define prior distribution
-    M = cfg.latent_dim
+        prior = hydra.utils.instantiate(cfg.priors.prior)
 
-    prior = hydra.utils.instantiate(cfg.priors.prior)
-
-    # Define VAE model
-    decoder = BernoulliDecoder(decoder_net(M))
-    encoder = GaussianEncoder(encoder_net(M))
-    model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
-
+        # Define VAE model
+        decoder = BernoulliDecoder(decoder_net(M))
+        encoder = GaussianEncoder(encoder_net(M))
+        model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
+    elif cfg.models.name == 'ddpm':
+        net = Unet()
+        model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T).to(DEVICE)
     # Define optimizer
     optimizer = hydra.utils.instantiate(cfg.optimizer, params=model.parameters())
 

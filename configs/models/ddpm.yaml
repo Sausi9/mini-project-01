@@ -1,0 +1,4 @@
+model:
+  _target_: models.ddpm.DDPM
+
+name: ddpm
