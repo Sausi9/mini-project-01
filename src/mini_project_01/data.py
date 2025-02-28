@@ -40,10 +40,10 @@ def load_mnist_dataset(data_dir: str = "data/",
                                         ])
         mnist_train_loader = DataLoader(datasets.MNIST(data_dir, train = True,
                                    download = True,
-                                   transform = transform))
+                                   transform = transform),batch_size=batch_size,shuffle=True)
         mnist_test_loader = DataLoader(datasets.MNIST(data_dir, train = False,
                                    download = True,
-                                   transform = transform))
+                                   transform = transform),batch_size=batch_size,shuffle=True)
     return mnist_train_loader, mnist_test_loader
 
     

@@ -31,8 +31,6 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
             The data loader to use for training.
     epochs: [int]
         Number of epochs to train for.
-    device: [torch.device]
-        The device to use for training.
     """
     model.train()
 
@@ -94,7 +92,7 @@ if __name__ == "__main__":
         encoder = GaussianEncoder(encoder_net(M))
         model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
     elif cfg.models.name == 'ddpm':
-        net = Unet()
+        net = Unet().to(DEVICE)
         model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T).to(DEVICE)
     # Define optimizer
     optimizer = hydra.utils.instantiate(cfg.optimizer, params=model.parameters())
