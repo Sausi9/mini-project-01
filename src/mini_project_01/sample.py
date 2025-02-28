@@ -10,6 +10,7 @@ from torchvision.utils import save_image
 from helpers import get_latest_model, DEVICE
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from models.unet import Unet
 
 
 # Load configuration
@@ -34,7 +35,11 @@ def sample(model) -> None:
     # Sample from the model
     model.eval()
     with torch.no_grad():
-        samples = model.sample(n_samples=64)
+        if cfg.models.name == 'ddpm':
+            samples = model.sample((64,784))
+            samples = samples /2 + 0.5
+        else:
+            samples = model.sample(n_samples=64)
         save_image(samples.view(64, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
 
     print(f"Samples saved to samples/sample_{cfg.models.name}.png")
@@ -176,26 +181,32 @@ def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     print(f"Plot saved to samples/prior_posterior_{cfg.models.name}.png")
 
 if __name__ == "__main__":
-    M = cfg.latent_dim
 
-    prior = hydra.utils.instantiate(cfg.priors.prior)
+    if cfg.models.name == 'ddpm':
+        net = Unet()
+        model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T)
+        sample(model)
+    else:
+        M = cfg.latent_dim
 
-    # Define VAE model
-    decoder = BernoulliDecoder(decoder_net(M))
-    encoder = GaussianEncoder(encoder_net(M))
+        prior = hydra.utils.instantiate(cfg.priors.prior)
 
-    model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
-    
-    # Sample from the model
-    sample(model)
+        # Define VAE model
+        decoder = BernoulliDecoder(decoder_net(M))
+        encoder = GaussianEncoder(encoder_net(M))
 
-    # Plot samples from the posterior
-    _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
-    plot_from_posterior(model, test_loader, M)
-    
+        model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
+        
+        # Sample from the model
+        sample(model)
 
-    # Plot samples from the prior
-    plot_from_prior(model, M)
+        # Plot samples from the posterior
+        _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
+        plot_from_posterior(model, test_loader, M)
+        
 
-    # Plot prior and posterior samples
-    plot_prior_and_posterior(model, test_loader, M)
+        # Plot samples from the prior
+        plot_from_prior(model, M)
+
+        # Plot prior and posterior samples
+        plot_prior_and_posterior(model, test_loader, M)

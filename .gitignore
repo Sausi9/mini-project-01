@@ -177,3 +177,7 @@ samples/
 
 # Ignore models weights and biases
 # /models
+
+#ignore .err and .out
+*.err
+*.out

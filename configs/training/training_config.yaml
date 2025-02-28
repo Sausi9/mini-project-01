@@ -3,5 +3,6 @@ batch_size: 64
 epochs: 10
 binarized: True
 
+
 # paths
 model_path: models/
