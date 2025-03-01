@@ -2,7 +2,7 @@ import torch
 from data import load_mnist_dataset
 import hydra
 from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net, VAE
-from helpers import DEVICE, get_latest_model
+from helpers import DEVICE, get_latest_model, GAUSSIAN, MOG, VAMP
 
 # Load configuration
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
@@ -31,16 +31,26 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
 
     model.eval()
 
+
     total_elbo = 0
     num_batches = 0
 
     with torch.no_grad():
         for x in data_loader:
             x = x[0].to(DEVICE)
-            elbo = model.elbo(x) # Compute the ELBO for the batch
+
+            if cfg.priors.name == GAUSSIAN:
+              elbo = model.elbo_gaussian(x)
+            elif cfg.priors.name == MOG:
+                elbo = model.elbo_mog(x)
+            elif cfg.priors.name == VAMP:
+                elbo = model.elbo_vamp(x)
+            else:
+                raise ValueError(f"Unknown prior type: {model.prior}")
+
             total_elbo += elbo.item() # Accumulate the ELBO
             num_batches += 1
-    
+
     # Compute the average ELBO over all batches
     avg_elbo = total_elbo / num_batches
 

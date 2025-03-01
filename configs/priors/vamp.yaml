@@ -3,3 +3,5 @@ prior:
   M: ${latent_dim}
   K: 10
   input_dim: 784
+
+name: vamp

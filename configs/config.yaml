@@ -2,8 +2,8 @@ defaults:
   - _self_
   - training: training_config
   - optimizer: adam
-  - models: ddpm
-  - priors: mog
+  - models: vae
+  - priors: vamp
 
 latent_dim: 10
 T: 1000
