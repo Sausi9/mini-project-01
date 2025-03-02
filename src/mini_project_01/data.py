@@ -61,8 +61,8 @@ def load_mnist_dataset(
         transform = transforms.Compose(
             [
                 transforms.ToTensor(),
-                transforms.Lambda(lambda x: x + torch.rand(x.shape) / 255),
-                transforms.Lambda(lambda x: (x - 0.5) * 2.0),
+                transforms.Lambda(lambda x: x + torch.sigmoid(torch.randn_like(x)) / 255),
+                transforms.Lambda(lambda x: x.clamp(0, 1)),
                 transforms.Lambda(lambda x: x.flatten()),
             ]
         )
