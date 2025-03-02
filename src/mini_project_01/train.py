@@ -1,14 +1,12 @@
-from models.priors import GaussianPrior, MoGPrior, VampPrior
+from models.priors import MoGPrior
 from models.unet import Unet
-from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
-from models.flow import Flow, MaskedCouplingLayer, build_transformations
+from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.flow import build_transformations
 from data import load_mnist_dataset
-import torch.nn as nn
 import torch
 from tqdm import tqdm
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 import hydra
-from datetime import datetime
 import os
 
 

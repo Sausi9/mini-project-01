@@ -1,10 +1,6 @@
 import hydra
-from omegaconf import DictConfig
-import os
-from torch import nn
 import torch
-from models.priors import GaussianPrior
-from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
 from data import load_mnist_dataset
 from torchvision.utils import save_image
 from helpers import get_latest_model, DEVICE

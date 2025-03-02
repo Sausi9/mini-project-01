@@ -1,11 +1,6 @@
 import torch
-import torch.distributions as td
 import torch.nn as nn
-from torchvision import datasets, transforms
-from tqdm import tqdm
 import hydra
-from priors import MoGPrior
-from helpers import GAUSSIAN, MOG, VAMP
 
 
 with hydra.initialize(config_path="../../../configs", version_base="1.3"):
