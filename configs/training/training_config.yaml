@@ -4,5 +4,11 @@ epochs: 10
 binarized: True
 
 
+flow:
+  - batch_size: 10000
+  - epochs: 10
+  - binarized: False
+
+
 # paths
 model_path: models/

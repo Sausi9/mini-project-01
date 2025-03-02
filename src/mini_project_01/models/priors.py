@@ -65,7 +65,6 @@ class MoGPrior(nn.Module):
         # Create the MixtureSameFamily distribution
         return td.MixtureSameFamily(mixture_dist, component_dist)
 
-
 # TODO: Implement VampPrior class
 class VampPrior(nn.Module):
     def __init__(self, M, K, input_dim):

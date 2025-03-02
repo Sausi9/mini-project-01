@@ -1,0 +1,4 @@
+model:
+  _target_: models.flow.Flow
+
+name: flow

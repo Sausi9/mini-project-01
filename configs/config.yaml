@@ -1,5 +1,23 @@
 defaults:
   - _self_
+  - training: training_config.flow
+  - optimizer: adam
+  - models: flow
+  - priors: mog
+  - num_transformations: 10
+  - num_hidden: 2048
+
+flow:
+  - _self_
+  - training: training_config.flow
+  - optimizer: adam
+  - models: flow
+  - priors: mog
+  - num_transformations: 10
+  - num_hidden: 2048
+
+vae_vamp:
+  - _self_
   - training: training_config
   - optimizer: adam
   - models: vae

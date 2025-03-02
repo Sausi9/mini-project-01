@@ -1,6 +1,7 @@
 from models.priors import GaussianPrior, MoGPrior, VampPrior
 from models.unet import Unet
 from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.flow import Flow, MaskedCouplingLayer, build_transformations
 from data import load_mnist_dataset
 import torch.nn as nn
 import torch
@@ -18,13 +19,13 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
-def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils.data.DataLoader, epochs: int) -> None:
+def train(model, optimizer: torch.optim.Optimizer, data_loader: torch.utils.data.DataLoader, epochs: int) -> None:
     """
-    Train a VAE model.
+    Train a model.
 
     Parameters:
-    model: [VAE]
-       The VAE model to train.
+    model:
+       The model to train.
     optimizer: [torch.optim.Optimizer]
          The optimizer to use for training.
     data_loader: [torch.utils.data.DataLoader]
@@ -36,7 +37,7 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
 
     total_steps = len(data_loader)*epochs
 
-    print("Training VAE...\n")
+    print("Training model...\n")
     print(f"Device: {DEVICE}")
     print("Configuration:")
     print(OmegaConf.to_yaml(cfg))
@@ -94,6 +95,14 @@ if __name__ == "__main__":
     elif cfg.models.name == 'ddpm':
         net = Unet().to(DEVICE)
         model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T).to(DEVICE)
+    elif cfg.models.name == 'flow':
+        D = next(iter(train_loader))[0].shape[1]
+        base = MoGPrior(D)
+        num_transformations = cfg.num_transformations
+        num_hidden = cfg.num_hidden
+        transformations = build_transformations(D, num_hidden, num_transformations)
+        model = hydra.utils.instantiate(cfg.models.model, base=base, transformations=transformations).to(DEVICE)
+
     # Define optimizer
     optimizer = hydra.utils.instantiate(cfg.optimizer, params=model.parameters())
 
