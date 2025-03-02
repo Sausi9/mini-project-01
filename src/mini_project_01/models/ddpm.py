@@ -28,8 +28,10 @@ class DDPM(nn.Module):
 
         self.beta = nn.Parameter(torch.linspace(beta_1, beta_T, T), requires_grad=False)
         self.alpha = nn.Parameter(1 - self.beta, requires_grad=False)
-        self.alpha_cumprod = nn.Parameter(self.alpha.cumprod(dim=0), requires_grad=False)
-    
+        self.alpha_cumprod = nn.Parameter(
+            self.alpha.cumprod(dim=0), requires_grad=False
+        )
+
     def negative_elbo(self, x):
         """
         Evaluate the DDPM negative ELBO on a batch of data.
@@ -43,14 +45,18 @@ class DDPM(nn.Module):
         """
 
         ### Implement Algorithm 1 here ###
-        t = torch.randint(high=self.T,size=(1,))
-        t_inp = torch.full(size=(x.shape[0],),fill_value = t[0]/self.T).reshape(-1,1)
+        t = torch.randint(high=self.T, size=(1,))
+        t_inp = torch.full(size=(x.shape[0],), fill_value=t[0] / self.T).reshape(-1, 1)
         t_inp = t_inp.to(x.device)
-        eps_dist = td.MultivariateNormal(loc=torch.zeros(x.shape[1]),covariance_matrix=torch.eye(x.shape[1]))
+        eps_dist = td.MultivariateNormal(
+            loc=torch.zeros(x.shape[1]), covariance_matrix=torch.eye(x.shape[1])
+        )
         eps = eps_dist.sample(sample_shape=(x.shape[0],)).to(x.device)
-        factor = torch.sqrt(1-self.alpha_cumprod[t]).to(x.device)
-        net_input = eps-self.network(torch.sqrt(self.alpha_cumprod[t])*x+factor*eps,t_inp)
-        neg_elbo = torch.norm(net_input,dim=1,p=2)
+        factor = torch.sqrt(1 - self.alpha_cumprod[t]).to(x.device)
+        net_input = eps - self.network(
+            torch.sqrt(self.alpha_cumprod[t]) * x + factor * eps, t_inp
+        )
+        neg_elbo = torch.norm(net_input, dim=1, p=2)
 
         return neg_elbo
 
@@ -69,11 +75,20 @@ class DDPM(nn.Module):
         x_t = torch.randn(shape)
 
         # Sample x_t given x_{t+1} until x_0 is sampled
-        for t in range(self.T-1, -1, -1):
-            t_inp = torch.full(size=(shape[0],),fill_value = t/self.T).reshape(-1,1)
-            factor = (1-self.alpha[t])/(torch.sqrt(1-self.alpha_cumprod[t]))
-            z = torch.randn(shape).to(self.alpha.device) if t > 0 else torch.full(size=shape,fill_value=0.0)
-            x_t = 1/torch.sqrt(self.alpha[t])*(x_t-factor*self.network(x_t,t_inp)) + torch.sqrt(self.beta[t])*z
+        for t in range(self.T - 1, -1, -1):
+            t_inp = torch.full(size=(shape[0],), fill_value=t / self.T).reshape(-1, 1)
+            factor = (1 - self.alpha[t]) / (torch.sqrt(1 - self.alpha_cumprod[t]))
+            z = (
+                torch.randn(shape).to(self.alpha.device)
+                if t > 0
+                else torch.full(size=shape, fill_value=0.0)
+            )
+            x_t = (
+                1
+                / torch.sqrt(self.alpha[t])
+                * (x_t - factor * self.network(x_t, t_inp))
+                + torch.sqrt(self.beta[t]) * z
+            )
 
         return x_t
 

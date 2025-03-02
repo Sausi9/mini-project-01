@@ -74,7 +74,7 @@ class MaskedCouplingLayer(nn.Module):
         z_prime = x
         b_z_prime = self.mask * z_prime
         s = self.scale_net(b_z_prime)
-        # Clamp scaling for numerical stability 
+        # Clamp scaling for numerical stability
         # s = torch.clamp(s, min=-2.0, max=2.0)
         t = self.translation_net(b_z_prime)
         # Use safer exponential and protect division
@@ -177,7 +177,7 @@ class Flow(nn.Module):
         Returns:
         loss: [torch.Tensor]
             The negative mean log likelihood for the given data batch.
-        """ 
+        """
         return -torch.mean(self.log_prob(x))
 
 
@@ -186,9 +186,9 @@ def build_transformations(D, num_hidden, num_transformations):
     for i in range(num_transformations):
         mask = torch.randint(0, 2, (D,))
 
-        #mask = torch.Tensor(
+        # mask = torch.Tensor(
         #    [1 if (i + j) % 2 == 0 else 0 for i in range(28) for j in range(28)]
-        #)
+        # )
         scale_net = nn.Sequential(
             nn.Linear(D, num_hidden),
             nn.LeakyReLU(negative_slope=0.01),  # Smoother gradients
@@ -205,4 +205,4 @@ def build_transformations(D, num_hidden, num_transformations):
             nn.Linear(num_hidden, D),
         )
         transformations.append(MaskedCouplingLayer(scale_net, translation_net, mask))
-    return transformations 
+    return transformations
