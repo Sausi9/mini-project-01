@@ -1,6 +1,7 @@
 import hydra
 import torch
 from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.flow import build_transformations
 from data import load_mnist_dataset
 from torchvision.utils import save_image
 from helpers import get_latest_model, DEVICE
@@ -35,9 +36,12 @@ def sample(model) -> None:
         if cfg.models.name == "ddpm":
             samples = model.sample((64, 784))
             samples = samples / 2 + 0.5
+        elif cfg.models.name == "flow":
+            samples = model.sample((64,))
+            samples = samples / 2 + 0.5
         else:
             samples = model.sample(n_samples=64)
-        save_image(samples.view(64, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
+        save_image(samples.view(-1, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
 
     print(f"Samples saved to samples/sample_{cfg.models.name}.png")
 
@@ -189,6 +193,16 @@ if __name__ == "__main__":
     if cfg.models.name == "ddpm":
         net = Unet()
         model = hydra.utils.instantiate(cfg.models.model, network=net, T=cfg.T)
+        sample(model)
+    if cfg.models.name == "flow":
+        base = hydra.utils.instantiate(cfg.priors.prior, M=784, K=10)
+        num_transformations = cfg.num_transformations_flow
+        num_hidden = cfg.num_hidden_flow
+        transformations = build_transformations(784, num_hidden, num_transformations)
+        model = hydra.utils.instantiate(
+            cfg.models.model, base=base, transformations=transformations
+        ).to(DEVICE)
+
         sample(model)
     else:
         M = cfg.latent_dim

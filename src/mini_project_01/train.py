@@ -1,4 +1,3 @@
-from models.priors import MoGPrior
 from models.unet import Unet
 from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
 from models.flow import build_transformations
@@ -64,7 +63,7 @@ def train(
                 x = x[0]
             x = x.to(DEVICE)
             optimizer.zero_grad()
-            if cfg.models.name == "ddpm":
+            if cfg.models.name == "ddpm" or cfg.models.name == "flow":
                 loss = model.loss(x)
             else:
                 loss = model(x)
@@ -114,9 +113,9 @@ if __name__ == "__main__":
         )
     elif cfg.models.name == "flow":
         D = next(iter(train_loader))[0].shape[1]
-        base = MoGPrior(D)
-        num_transformations = cfg.num_transformations
-        num_hidden = cfg.num_hidden
+        base = hydra.utils.instantiate(cfg.priors.prior, M=D, K=10)
+        num_transformations = cfg.num_transformations_flow
+        num_hidden = cfg.num_hidden_flow
         transformations = build_transformations(D, num_hidden, num_transformations)
         model = hydra.utils.instantiate(
             cfg.models.model, base=base, transformations=transformations

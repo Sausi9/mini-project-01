@@ -47,9 +47,11 @@ class MoGPrior(nn.Module):
         # Mixture weights (logits, unnormalized)
         self.logits = nn.Parameter(torch.randn(K), requires_grad=True)
 
-        # Gaussian means and standard deviations (initialized around 0 and 1)
-        self.means = nn.Parameter(torch.randn(K, M), requires_grad=True)
-        self.log_stds = nn.Parameter(torch.zeros(K, M), requires_grad=True)
+        # Gaussian means and standard deviations 
+        self.means = nn.Parameter(torch.randn(K, M) * 0.01)  # Reduced initial spread
+        self.log_stds = nn.Parameter(
+            torch.ones(K, M) * -2.0
+        )  # Start with smaller variance (exp(-2) ≈ 0.135)
 
     def forward(self):
         """

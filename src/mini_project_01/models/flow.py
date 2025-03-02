@@ -45,7 +45,7 @@ class MaskedCouplingLayer(nn.Module):
         b_z = self.mask * z
         s = self.scale_net(b_z)
         # Clamp scaling for numerical stability
-        # s = torch.clamp(s, min=-2.0, max=2.0)
+        s = torch.clamp(s, min=-2.0, max=2.0)
         t = self.translation_net(b_z)
         # Use safer exponential
         exp_s = torch.exp(s)
@@ -70,7 +70,7 @@ class MaskedCouplingLayer(nn.Module):
         b_z_prime = self.mask * z_prime
         s = self.scale_net(b_z_prime)
         # Clamp scaling for numerical stability
-        # s = torch.clamp(s, min=-2.0, max=2.0)
+        s = torch.clamp(s, min=-2.0, max=2.0)
         t = self.translation_net(b_z_prime)
         # Use safer exponential and protect division
         z = b_z_prime + (1 - self.mask) * ((z_prime - t) * torch.exp(-s))
