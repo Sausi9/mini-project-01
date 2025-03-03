@@ -9,6 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 from datetime import datetime
 import os
+from helpers import VAE_CONSTS, DDPM
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -68,7 +69,11 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
 
     print("\nTraining complete.")
     model_name = cfg.models.name
-    model_path_and_name = f"models/{model_name}/{model_name}.pt"
+    if cfg.models.name == VAE_CONSTS:
+        prior_name = cfg.priors.name
+        model_path_and_name = f"models/{model_name}/{model_name}_{prior_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt"
+    else:
+        model_path_and_name = f"models/{model_name}/{model_name}.pt"
 
     # Create the directory if it does not exist
     os.makedirs(os.path.dirname(model_path_and_name), exist_ok=True)
@@ -81,7 +86,7 @@ if __name__ == "__main__":
 
     # Load the MNIST dataset
     train_loader, _ = load_mnist_dataset(batch_size=cfg.training.batch_size,binarized=cfg.training.binarized)
-    if cfg.models.name == 'vae':
+    if cfg.models.name == VAE_CONSTS:
         # Define prior distribution
         M = cfg.latent_dim
 
@@ -91,7 +96,7 @@ if __name__ == "__main__":
         decoder = BernoulliDecoder(decoder_net(M))
         encoder = GaussianEncoder(encoder_net(M))
         model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
-    elif cfg.models.name == 'ddpm':
+    elif cfg.models.name == DDPM:
         net = Unet().to(DEVICE)
         model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T).to(DEVICE)
     # Define optimizer
