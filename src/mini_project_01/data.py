@@ -80,7 +80,7 @@ def load_mnist_dataset(
     flatten : bool
         If True, reshapes each image to (784,). Otherwise keeps shape [1, 28, 28].
     do_logit : bool
-        If True, apply a logit transform after scaling/dequant. 
+        If True, apply a logit transform after scaling/dequant.
         That is, x <- log(x/(1-x)).
     alpha : float
         Small constant for clipping during logit transform to avoid infinite values.
@@ -100,9 +100,7 @@ def load_mnist_dataset(
 
     if binarized:
         # If binarized, we threshold the data
-        base_transforms.append(transforms.Lambda(
-            lambda x: (x > threshold).float()
-        ))
+        base_transforms.append(transforms.Lambda(lambda x: (x > threshold).float()))
     else:
         # If not binarized, do dequant
         base_transforms.append(transforms.Lambda(dequant_noise))
@@ -116,38 +114,22 @@ def load_mnist_dataset(
 
     # Flatten, if requested
     if flatten:
-        base_transforms.append(
-            transforms.Lambda(lambda x: x.view(-1))
-        )
+        base_transforms.append(transforms.Lambda(lambda x: x.view(-1)))
 
     # Compose everything
     transform = transforms.Compose(base_transforms)
 
     # Build Datasets
     train_dataset = datasets.MNIST(
-        root=data_dir,
-        train=True,
-        download=True,
-        transform=transform
+        root=data_dir, train=True, download=True, transform=transform
     )
     test_dataset = datasets.MNIST(
-        root=data_dir,
-        train=False,
-        download=True,
-        transform=transform
+        root=data_dir, train=False, download=True, transform=transform
     )
 
     # Build DataLoaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True
-    )
-    test_loader = DataLoader(
-        test_dataset,
-        batch_size=batch_size,
-        shuffle=shuffle_test
-    )
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle_test)
 
     return train_loader, test_loader
 
@@ -162,11 +144,7 @@ if __name__ == "__main__":
     )
     # 2) Continuous + dequant + logit
     cont_train, cont_test = load_mnist_dataset(
-        binarized=False,
-        do_dequant=True,
-        do_logit=True,
-        alpha=1e-5,
-        flatten=True
+        binarized=False, do_logit=True, alpha=1e-5, flatten=True
     )
 
     # Check shapes

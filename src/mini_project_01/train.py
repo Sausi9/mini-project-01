@@ -6,7 +6,7 @@ from tqdm import tqdm
 from omegaconf import OmegaConf
 import hydra
 import os
-from helpers import VAE_CONSTS, DDPM
+from helpers import VAE_CONSTS, DDPM, FLOW
 from datetime import datetime
 
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         model = hydra.utils.instantiate(cfg.models.model, network=net, T=cfg.T).to(
             DEVICE
         )
-    elif cfg.models.name == "flow":
+    elif cfg.models.name == FLOW:
         train_loader, _ = load_mnist_dataset(
             batch_size=cfg.training.batch_size,
             binarized=cfg.training.binarized,

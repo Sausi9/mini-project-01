@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 from typing import Tuple, List
 import hydra
@@ -9,7 +8,6 @@ import hydra
 # Load configuration
 with hydra.initialize(config_path="../../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
-
 
 
 class InvertiblePermutation(nn.Module):
@@ -37,14 +35,12 @@ class InvertiblePermutation(nn.Module):
 
         # We store both the forward permutation and its inverse
         self.register_buffer("perm", torch.from_numpy(perm))
-        
+
         # argsort to get inverse permutation
         inv = np.argsort(perm)
         self.register_buffer("inv_perm", torch.from_numpy(inv))
 
-    def forward(
-        self, x: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Permute the features of x.
 
@@ -67,9 +63,7 @@ class InvertiblePermutation(nn.Module):
         log_det = x.new_zeros(batch_size)
         return x_perm, log_det
 
-    def inverse(
-        self, z: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Invert the permutation of z.
 
@@ -100,10 +94,7 @@ class MaskedAffineCoupling(nn.Module):
     """
 
     def __init__(
-        self,
-        mask: torch.Tensor,
-        scale_net: nn.Module,
-        translate_net: nn.Module
+        self, mask: torch.Tensor, scale_net: nn.Module, translate_net: nn.Module
     ):
         """
         Parameters
@@ -121,9 +112,7 @@ class MaskedAffineCoupling(nn.Module):
         self.scale_net = scale_net
         self.translate_net = translate_net
 
-    def forward(
-        self, x: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass: data -> latent space.
 
@@ -142,7 +131,7 @@ class MaskedAffineCoupling(nn.Module):
         # Split according to mask
         x_masked = x * self.mask  # shape (B, D)
 
-        s = self.scale_net(x_masked)      # shape (B, D)
+        s = self.scale_net(x_masked)  # shape (B, D)
         t = self.translate_net(x_masked)  # shape (B, D)
 
         z = x_masked + (1 - self.mask) * (x * torch.exp(s) + t)
@@ -152,9 +141,7 @@ class MaskedAffineCoupling(nn.Module):
 
         return z, log_det
 
-    def inverse(
-        self, z: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Inverse pass: latent space -> data space.
 
@@ -184,7 +171,6 @@ class MaskedAffineCoupling(nn.Module):
         log_det = -torch.sum(s * (1 - self.mask), dim=1)
 
         return x, log_det
-
 
 
 class MLP(nn.Module):
@@ -269,9 +255,7 @@ class Flow(nn.Module):
         self.transforms = nn.ModuleList(transforms)
         self.base_dist = base_distribution
 
-    def forward(
-        self, x: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass: data -> latent. We accumulate log-determinants for each transform.
 
@@ -293,9 +277,7 @@ class Flow(nn.Module):
             log_det_total += log_det
         return x, log_det_total
 
-    def inverse(
-        self, z: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Inverse pass: latent -> data. We apply the inverse of each transform
         in reverse order.
@@ -377,13 +359,13 @@ class Flow(nn.Module):
         return -torch.mean(self.log_prob(x))
 
 
-
 def build_model(
-    height: int, width: int,
+    height: int,
+    width: int,
     hidden_dim: int = 512,
     num_coupling_layers: int = 4,
     seed: int = 42,
-    base_dist = None,
+    base_dist=None,
 ) -> Flow:
     """
     Builder for flow on flattened images of shape (height*width,).
@@ -430,9 +412,7 @@ def build_model(
         translate_net = MLP(D, D, hidden_dim=hidden_dim, final_activation=None)
 
         coupling = MaskedAffineCoupling(
-            mask=mask,
-            scale_net=scale_net,
-            translate_net=translate_net
+            mask=mask, scale_net=scale_net, translate_net=translate_net
         )
 
         transforms.append(coupling)
