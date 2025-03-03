@@ -1,6 +1,6 @@
 # Hyperparameters for training the model
 batch_size: 64
-epochs: 10
+epochs: 2
 binarized: True
 
 

@@ -14,6 +14,9 @@ MOG = "mog"
 VAMP = "vamp"
 
 
+VAE_CONSTS = 'vae'
+DDPM = 'ddpm'
+
 def get_latest_model(architecture: str = "vae") -> str:
     """Retrieve the latest model checkpoint for the given architecture."""
 

@@ -90,6 +90,15 @@ echo "=== Starting Training ==="
 # Execute the training script
 python3 src/mini_project_01/train.py
 
+# Run script 10 times
+#for i in {1..3}
+#do
+#    echo "=== Training Run $i ==="
+#    python -u src/mini_project_01/train.py
+#done    
+
+
+
 echo "=== Training Completed ==="
 
 # =============================================================================

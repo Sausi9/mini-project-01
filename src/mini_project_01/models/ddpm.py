@@ -2,7 +2,6 @@
 # Version 1.0 (2024-02-11)
 import torch
 import torch.nn as nn
-import torch.distributions as td
 
 
 class DDPM(nn.Module):
@@ -45,18 +44,15 @@ class DDPM(nn.Module):
         """
 
         ### Implement Algorithm 1 here ###
-        t = torch.randint(high=self.T, size=(1,))
-        t_inp = torch.full(size=(x.shape[0],), fill_value=t[0] / self.T).reshape(-1, 1)
-        t_inp = t_inp.to(x.device)
-        eps_dist = td.MultivariateNormal(
-            loc=torch.zeros(x.shape[1]), covariance_matrix=torch.eye(x.shape[1])
+        t = torch.randint(1, high=self.T, size=())
+        tnet = torch.full(size=(x.shape[0], 1), fill_value=t / self.T)
+        eps = torch.randn(size=x.shape)
+        dist = eps - self.network(
+            torch.sqrt(self.alpha_cumprod[t]) * x
+            + torch.sqrt(1 - self.alpha_cumprod[t]) * eps,
+            tnet,
         )
-        eps = eps_dist.sample(sample_shape=(x.shape[0],)).to(x.device)
-        factor = torch.sqrt(1 - self.alpha_cumprod[t]).to(x.device)
-        net_input = eps - self.network(
-            torch.sqrt(self.alpha_cumprod[t]) * x + factor * eps, t_inp
-        )
-        neg_elbo = torch.norm(net_input, dim=1, p=2)
+        neg_elbo = torch.square(torch.linalg.vector_norm(dist, dim=1, ord=2))
 
         return neg_elbo
 
@@ -76,17 +72,15 @@ class DDPM(nn.Module):
 
         # Sample x_t given x_{t+1} until x_0 is sampled
         for t in range(self.T - 1, -1, -1):
-            t_inp = torch.full(size=(shape[0],), fill_value=t / self.T).reshape(-1, 1)
+            tnet = torch.full(size=(shape[0], 1), fill_value=t / self.T)
             factor = (1 - self.alpha[t]) / (torch.sqrt(1 - self.alpha_cumprod[t]))
             z = (
                 torch.randn(shape).to(self.alpha.device)
                 if t > 0
-                else torch.full(size=shape, fill_value=0.0)
+                else torch.zeros(shape)
             )
             x_t = (
-                1
-                / torch.sqrt(self.alpha[t])
-                * (x_t - factor * self.network(x_t, t_inp))
+                1 / torch.sqrt(self.alpha[t]) * (x_t - factor * self.network(x_t, tnet))
                 + torch.sqrt(self.beta[t]) * z
             )
 

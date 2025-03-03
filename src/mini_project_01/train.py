@@ -6,6 +6,8 @@ from tqdm import tqdm
 from omegaconf import OmegaConf
 import hydra
 import os
+from helpers import VAE_CONSTS, DDPM
+from datetime import datetime
 
 
 DEVICE = torch.device(
@@ -88,7 +90,11 @@ def train(
 
     print("\nTraining complete.")
     model_name = cfg.models.name
-    model_path_and_name = f"models/{model_name}/{model_name}.pt"
+    if cfg.models.name == VAE_CONSTS:
+        prior_name = cfg.priors.name
+        model_path_and_name = f"models/{model_name}/{model_name}_{prior_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt"
+    else:
+        model_path_and_name = f"models/{model_name}/{model_name}.pt"
 
     # Create the directory if it does not exist
     os.makedirs(os.path.dirname(model_path_and_name), exist_ok=True)
@@ -100,10 +106,11 @@ def train(
 if __name__ == "__main__":
     # Load the MNIST dataset
     train_loader, _ = load_mnist_dataset(
-        batch_size=cfg.training.batch_size, binarized=cfg.training.binarized, 
+        batch_size=cfg.training.batch_size,
+        binarized=cfg.training.binarized,
     )
     scheduler = None
-    if cfg.models.name == "vae":
+    if cfg.models.name == VAE_CONSTS:
         # Define prior distribution
         M = cfg.latent_dim
 
@@ -115,21 +122,25 @@ if __name__ == "__main__":
         model = hydra.utils.instantiate(
             cfg.models.model, prior=prior, decoder=decoder, encoder=encoder
         ).to(DEVICE)
-    elif cfg.models.name == "ddpm":
+    elif cfg.models.name == DDPM:
         net = Unet().to(DEVICE)
         model = hydra.utils.instantiate(cfg.models.model, network=net, T=cfg.T).to(
             DEVICE
         )
     elif cfg.models.name == "flow":
         train_loader, _ = load_mnist_dataset(
-            batch_size=cfg.training.batch_size, binarized=cfg.training.binarized, do_logit=True,
+            batch_size=cfg.training.batch_size,
+            binarized=cfg.training.binarized,
+            do_logit=True,
         )
         D = 784
         # Number of transformations and hidden dim from config
         num_transformations = cfg.num_transformations_flow
         num_hidden = cfg.num_hidden_flow
         base = torch.distributions.Independent(
-            torch.distributions.Normal(loc=torch.zeros(D).to(DEVICE), scale=torch.ones(D).to(DEVICE)),
+            torch.distributions.Normal(
+                loc=torch.zeros(D).to(DEVICE), scale=torch.ones(D).to(DEVICE)
+            ),
             reinterpreted_batch_ndims=1,
         )
 
