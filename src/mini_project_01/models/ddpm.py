@@ -2,8 +2,6 @@
 # Version 1.0 (2024-02-11)
 import torch
 import torch.nn as nn
-import torch.distributions as td
-import numpy as np
 
 
 class DDPM(nn.Module):
@@ -68,10 +66,10 @@ class DDPM(nn.Module):
 
         # Sample x_t given x_{t+1} until x_0 is sampled
         for t in range(self.T-1, -1, -1):
-            t_inp = torch.full(size=(shape[0],),fill_value = t/self.T).reshape(-1,1)
+            tnet = torch.full(size=(shape[0],1),fill_value = t/self.T)
             factor = (1-self.alpha[t])/(torch.sqrt(1-self.alpha_cumprod[t]))
-            z = torch.randn(shape).to(self.alpha.device) if t > 0 else torch.full(size=shape,fill_value=0.0)
-            x_t = 1/torch.sqrt(self.alpha[t])*(x_t-factor*self.network(x_t,t_inp)) + torch.sqrt(self.beta[t])*z
+            z = torch.randn(shape).to(self.alpha.device) if t > 0 else torch.zeros(shape)
+            x_t = 1/torch.sqrt(self.alpha[t])*(x_t-factor*self.network(x_t,tnet)) + torch.sqrt(self.beta[t])*z
 
         return x_t
 
