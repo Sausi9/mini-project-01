@@ -3,7 +3,7 @@ defaults:
   - training: training_config
   - optimizer: adam
   - models: vae
-  - priors: mog
+  - priors: gaussian
 
 latent_dim: 10
 T: 1000
