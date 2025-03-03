@@ -11,7 +11,9 @@ from helpers import get_latest_model, DEVICE
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from models.unet import Unet
-
+import numpy as np
+from scipy.stats import gaussian_kde
+from helpers import GAUSSIAN
 
 # Load configuration
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
@@ -50,7 +52,7 @@ def plot_from_posterior(model, data_loader, M, n_samples=200):
     Plot samples from the posterior distribution of the model.
 
     Parameters:
-    model: [VAE] 
+    model: [VAE]
         The VAE model to sample from.
     data_loader: [torch.utils.data.DataLoader]
         The data loader to use for sampling.
@@ -109,7 +111,7 @@ def plot_from_prior(model, M, n_samples=200):
     Plot samples from the prior distribution of the model.
 
     Parameters:
-    model: [VAE] 
+    model: [VAE]
         The VAE model to sample from.
     n_samples: [int]
         Number of samples to generate.
@@ -180,6 +182,106 @@ def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     plt.savefig(f"samples/prior_posterior_{cfg.models.name}.png")
     print(f"Plot saved to samples/prior_posterior_{cfg.models.name}.png")
 
+
+
+def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
+    """
+    Plot a contour of the prior density with posterior samples as black dots, handling
+    higher-dimensional latent spaces and mixture priors like VampPrior.
+
+    Parameters:
+    model: [VAE]
+        The VAE model to sample from.
+    data_loader: [torch.utils.data.DataLoader]
+        The data loader to use for sampling posterior.
+    n_samples: [int]
+        Number of samples to generate.
+    M: [int]
+        Dimension of the latent space.
+    """
+    print("Creating prior contour with posterior samples plot...")
+
+    # Load the latest model
+    wnb = get_latest_model(cfg.models.name)
+    print(f"Loading model: {wnb}")
+    model.load_state_dict(torch.load(wnb, map_location=DEVICE))
+
+    model.eval()
+
+    # --- Prior Contour Plot ---
+    # Create a 2D grid for visualization, matching the range of your scatter plot
+    x = np.linspace(-10, 10, 100)  # Expanded to match the full range of your data
+    y = np.linspace(-10, 10, 100)  # Expanded to match the full range of your data
+    X, Y = np.meshgrid(x, y)
+
+    # Use the prior to generate samples or approximate density
+    prior = model.prior()  # Get the prior distribution from the model
+
+    if M > 2:
+        # If the latent space is higher-dimensional, use PCA to project prior samples to 2D
+        with torch.no_grad():
+            # Sample from the prior to estimate its density in 2D
+            n_prior_samples = 1000  # Number of samples for density estimation
+            z_prior_samples = prior.sample(torch.Size([n_prior_samples])).cpu().numpy()
+            pca = PCA(n_components=2)
+            z_prior_2d = pca.fit_transform(z_prior_samples)
+
+        # Use KDE to estimate 2D density from prior samples
+        kde = gaussian_kde(z_prior_2d.T)
+        positions = np.column_stack((X.flatten(), Y.flatten()))  # Shape: [10000, 2]
+        Z = kde.evaluate(positions.T).reshape(100, 100)  # Evaluate and reshape back to grid
+    else:
+        # For M=2, compute density directly (e.g., for GaussianPrior)
+        positions = np.dstack((X, Y))
+        positions_tensor = torch.tensor(positions, dtype=torch.float32)
+        log_probs = prior.log_prob(positions_tensor).exp()  # Convert log_prob to probability
+        Z = log_probs.numpy()
+
+    # --- Posterior Samples ---
+    all_z = []
+    with torch.no_grad():
+        for i, (x, _) in enumerate(data_loader):  # Ignore labels
+            if i * data_loader.batch_size >= n_samples:
+                break
+            x = x.to(DEVICE)
+            q = model.encoder(x)  # Get posterior distribution (q(z|x))
+            z = q.rsample()  # Sample from the posterior using reparameterization
+            z = z.view(-1, M)  # Ensure shape is (batch_size, M)
+            all_z.append(z.cpu())
+    all_z = torch.cat(all_z, dim=0).numpy()
+
+    # Project posterior samples to 2D if M > 2
+    if M > 2:
+        pca = PCA(n_components=2)
+        all_z = pca.fit_transform(all_z)
+    elif M != 2:
+        raise ValueError(f"Latent dimension M={M} is not supported for direct 2D plotting. Use M=2 or M>2 with PCA.")
+
+    # Plot
+    plt.figure(figsize=(8, 8))  # Maintain figure size but adjust plot scaling
+    contour = plt.contourf(X, Y, Z, levels=20, cmap='viridis', alpha=1.0)  # Contour plot of prior density with transparency
+    plt.scatter(all_z[:, 0], all_z[:, 1], c='black', s=10, alpha=0.5)  # Posterior samples as black dots
+    plt.colorbar(contour, label='Density')  # Add colorbar
+    plt.xlabel('Latent Dimension 1')
+    plt.ylabel('Latent Dimension 2')
+    plt.title('Prior Density with Posterior Samples')
+
+    # Set axes limits to match the data range, ensuring the contour fills the space
+    plt.xlim(-10, 10)  # Match the grid range
+    plt.ylim(-10, 10)  # Match the grid range
+
+    print(cfg.priors.name)
+    if cfg.priors.name == GAUSSIAN:
+      plt.xlim(-4, 4)
+      plt.ylim(-4, 4)
+    # Adjust layout to minimize white space
+    plt.tight_layout()
+
+    plt.savefig(f"samples/prior_contour_posterior_{cfg.models.name}.png")
+    print(f"Plot saved to samples/prior_contour_posterior_{cfg.models.name}.png")
+
+    plt.close()  # Close
+
 if __name__ == "__main__":
 
     if cfg.models.name == 'ddpm':
@@ -196,17 +298,19 @@ if __name__ == "__main__":
         encoder = GaussianEncoder(encoder_net(M))
 
         model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
-        
+
         # Sample from the model
         sample(model)
 
         # Plot samples from the posterior
         _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
         plot_from_posterior(model, test_loader, M)
-        
+
 
         # Plot samples from the prior
         plot_from_prior(model, M)
 
         # Plot prior and posterior samples
         plot_prior_and_posterior(model, test_loader, M)
+
+        plot_prior_contour_with_posterior(model, test_loader, M)
