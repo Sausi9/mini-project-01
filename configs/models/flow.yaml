@@ -1,4 +1,4 @@
 model:
-  _target_: models.flow.Flow
+  _target_: models.flow.build_model
 
 name: flow

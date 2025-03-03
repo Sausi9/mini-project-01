@@ -1,203 +1,447 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+from typing import Tuple, List
 import hydra
 
 
+# Load configuration
 with hydra.initialize(config_path="../../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
 
-class MaskedCouplingLayer(nn.Module):
+
+class InvertiblePermutation(nn.Module):
     """
-    An affine coupling layer for a normalizing flow.
+    An invertible, fixed (random) permutation layer for 1D data of shape (B, D).
+
+    This layer permutes the order of features, which helps ensure that different
+    features are masked in different ways across coupling layers.
     """
 
-    def __init__(self, scale_net, translation_net, mask):
+    def __init__(self, num_features: int, seed: int = 42):
         """
-        Define a coupling layer.
+        Parameters
+        ----------
+        num_features : int
+            Dimensionality of the feature space.
+        seed : int
+            Random seed for generating the permutation.
+        """
+        super().__init__()
+        # Create a fixed random permutation of [0, 1, 2, ..., num_features-1]
+        rng = np.random.RandomState(seed)
+        perm = np.arange(num_features)
+        rng.shuffle(perm)
 
-        Parameters:
-        scale_net: [torch.nn.Module]
-            The scaling network that takes as input a tensor of dimension `(batch_size, feature_dim)` and outputs a tensor of dimension `(batch_size, feature_dim)`.
-        translation_net: [torch.nn.Module]
-            The translation network that takes as input a tensor of dimension `(batch_size, feature_dim)` and outputs a tensor of dimension `(batch_size, feature_dim)`.
-        mask: [torch.Tensor]
-            A binary mask of dimension `(feature_dim,)` that determines which features (where the mask is zero) are transformed by the scaling and translation networks.
+        # We store both the forward permutation and its inverse
+        self.register_buffer("perm", torch.from_numpy(perm))
+        
+        # argsort to get inverse permutation
+        inv = np.argsort(perm)
+        self.register_buffer("inv_perm", torch.from_numpy(inv))
+
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        super(MaskedCouplingLayer, self).__init__()
+        Permute the features of x.
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, D)
+            Input data (features).
+
+        Returns
+        -------
+        x_perm : torch.Tensor of shape (B, D)
+            Permuted data.
+        log_det : torch.Tensor of shape (B,)
+            The log-determinant of the Jacobian for this transform.
+            For a permutation, it is always 0, so we return a zero tensor.
+        """
+        # Note: permutation does not change volume, so log_det = 0
+        x_perm = x[:, self.perm]
+        batch_size = x.shape[0]
+        log_det = x.new_zeros(batch_size)
+        return x_perm, log_det
+
+    def inverse(
+        self, z: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Invert the permutation of z.
+
+        Parameters
+        ----------
+        z : torch.Tensor of shape (B, D)
+            Input latent data (permuted features).
+
+        Returns
+        -------
+        x : torch.Tensor of shape (B, D)
+            Unpermuted data (original feature ordering).
+        log_det : torch.Tensor of shape (B,)
+            For a permutation, it is also 0.
+        """
+        x = z[:, self.inv_perm]
+        batch_size = z.shape[0]
+        log_det = z.new_zeros(batch_size)
+        return x, log_det
+
+
+class MaskedAffineCoupling(nn.Module):
+    """
+    A Flow-style affine coupling layer with a mask that splits the features
+    into two subsets: the 'masked' subset is passed through unchanged, while
+    the 'unmasked' subset is scaled and translated based on an MLP applied to
+    the masked subset.
+    """
+
+    def __init__(
+        self,
+        mask: torch.Tensor,
+        scale_net: nn.Module,
+        translate_net: nn.Module
+    ):
+        """
+        Parameters
+        ----------
+        mask : torch.Tensor of shape (D,)
+            A binary mask indicating which components of the input are active.
+            (Typically 0/1 values).
+        scale_net : nn.Module
+            An MLP (or other net) mapping masked features -> scale parameters.
+        translate_net : nn.Module
+            An MLP (or other net) mapping masked features -> translate parameters.
+        """
+        super().__init__()
+        self.register_buffer("mask", mask)  # shape (D,)
         self.scale_net = scale_net
-        self.translation_net = translation_net
-        self.mask = nn.Parameter(mask, requires_grad=False)
+        self.translate_net = translate_net
 
-    def forward(self, z):
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Transform a batch of data through the coupling layer (from the base to data).
+        Forward pass: data -> latent space.
 
-        Parameters:
-        x: [torch.Tensor]
-            The input to the transformation of dimension `(batch_size, feature_dim)`
-        Returns:
-        z: [torch.Tensor]
-            The output of the transformation of dimension `(batch_size, feature_dim)`
-        sum_log_det_J: [torch.Tensor]
-            The sum of the log determinants of the Jacobian matrices of the forward transformations of dimension `(batch_size, feature_dim)`.
-        """
-        b_z = self.mask * z
-        s = self.scale_net(b_z)
-        # Clamp scaling for numerical stability
-        s = torch.clamp(s, min=-2.0, max=2.0)
-        t = self.translation_net(b_z)
-        # Use safer exponential
-        exp_s = torch.exp(s)
-        z_prime = b_z + (1 - self.mask) * (z * exp_s + t)
-        log_det_J = torch.sum(s * (1 - self.mask), dim=1)
-        return z_prime, log_det_J
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, D)
+            Data in original space.
 
-    def inverse(self, x):
+        Returns
+        -------
+        z : torch.Tensor of shape (B, D)
+            Transformed data in latent space.
+        log_det : torch.Tensor of shape (B,)
+            The log-determinant of the Jacobian for this transform.
         """
-        Transform a batch of data through the coupling layer (from data to the base).
+        # Split according to mask
+        x_masked = x * self.mask  # shape (B, D)
 
-        Parameters:
-        x: [torch.Tensor]
-            The input to the inverse transformation of dimension `(batch_size, feature_dim)`
-        Returns:
-        z: [torch.Tensor]
-            The output of the inverse transformation of dimension `(batch_size, feature_dim)`
-        sum_log_det_J: [torch.Tensor]
-            The sum of the log determinants of the Jacobian matrices of the inverse transformations.
+        s = self.scale_net(x_masked)      # shape (B, D)
+        t = self.translate_net(x_masked)  # shape (B, D)
+
+        z = x_masked + (1 - self.mask) * (x * torch.exp(s) + t)
+
+        # log|det J| = sum over unmasked dimensions of s
+        log_det = torch.sum(s * (1 - self.mask), dim=1)
+
+        return z, log_det
+
+    def inverse(
+        self, z: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        z_prime = x
-        b_z_prime = self.mask * z_prime
-        s = self.scale_net(b_z_prime)
-        # Clamp scaling for numerical stability
-        s = torch.clamp(s, min=-2.0, max=2.0)
-        t = self.translation_net(b_z_prime)
-        # Use safer exponential and protect division
-        z = b_z_prime + (1 - self.mask) * ((z_prime - t) * torch.exp(-s))
-        sum_log_det_J = -torch.sum(s * (1 - self.mask), dim=1)
-        return z, sum_log_det_J
+        Inverse pass: latent space -> data space.
+
+        Parameters
+        ----------
+        z : torch.Tensor of shape (B, D)
+            Data in the latent space.
+
+        Returns
+        -------
+        x : torch.Tensor of shape (B, D)
+            Inverted data in the original space.
+        log_det : torch.Tensor of shape (B,)
+            The log-determinant of the Jacobian for the inverse transform
+            (i.e., negative of the forward transform's log_det).
+        """
+        z_masked = z * self.mask
+
+        s = self.scale_net(z_masked)
+        t = self.translate_net(z_masked)
+
+        # Inverse for the unmasked portion:
+        # x_unmasked = (z_unmasked - t) * exp(-s)
+        x = z_masked + (1 - self.mask) * ((z - t) * torch.exp(-s))
+
+        # log|det J_inv| = - log|det J_forward|
+        log_det = -torch.sum(s * (1 - self.mask), dim=1)
+
+        return x, log_det
+
+
+
+class MLP(nn.Module):
+    """
+    A simple multi-layer perceptron for producing scale and translation vectors
+    in an affine coupling layer.
+    """
+
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        hidden_dim: int = 512,
+        final_activation: nn.Module = None,
+    ):
+        """
+        Parameters
+        ----------
+        in_features : int
+            Dimension of the input features.
+        out_features : int
+            Dimension of the output features (e.g. same as in_features).
+        hidden_dim : int
+            Number of hidden units in each layer.
+        final_activation : nn.Module
+            Optional final activation (e.g., nn.Tanh()) to bound the scale.
+        """
+        super().__init__()
+
+        self.net = nn.Sequential(
+            nn.Linear(in_features, hidden_dim),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(inplace=True),
+            nn.Linear(hidden_dim, out_features),
+        )
+
+        # Initialize the last layer near zero
+        nn.init.uniform_(self.net[-1].weight, a=-0.001, b=0.001)
+        nn.init.zeros_(self.net[-1].bias)
+
+        self.final_activation = final_activation
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, in_features)
+
+        Returns
+        -------
+        out : torch.Tensor of shape (B, out_features)
+        """
+        out = self.net(x)
+        if self.final_activation is not None:
+            out = self.final_activation(out)
+        return out
 
 
 class Flow(nn.Module):
-    def __init__(self, base, transformations):
-        """
-        Define a normalizing flow model.
+    """
+    A normalizing flow that applies a sequence of invertible
+    transformations (coupling layers + permutations). The 'forward()' method
+    maps data to latent space and yields log-determinants. The 'inverse()' method
+    maps latent samples back to data space.
+    """
 
-        Parameters:
-        base: [torch.distributions.Distribution]
-            The base distribution.
-        transformations: [list of torch.nn.Module]
-            A list of transformations to apply to the base distribution.
+    def __init__(
+        self,
+        transforms: List[nn.Module],
+        base_distribution: torch.distributions.Distribution,
+    ):
         """
-        super(Flow, self).__init__()
-        self.base = base
-        self.transformations = nn.ModuleList(transformations)
-
-    def forward(self, x):
+        Parameters
+        ----------
+        transforms : list of nn.Module
+            A list of invertible transforms (coupling layers, permutations, etc.).
+        base_distribution : torch.distributions.Distribution
+            The base distribution (e.g., standard Normal) in the latent space.
         """
-        Transform a batch of data through the flow (from the base to data).
+        super().__init__()
+        self.transforms = nn.ModuleList(transforms)
+        self.base_dist = base_distribution
 
-        Parameters:
-        x: [torch.Tensor]
-            The input to the transformation of dimension `(batch_size, feature_dim)`
-        Returns:
-        z: [torch.Tensor]
-            The output of the transformation of dimension `(batch_size, feature_dim)`
-        sum_log_det_J: [torch.Tensor]
-            The sum of the log determinants of the Jacobian matrices of the forward transformations.
+    def forward(
+        self, x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        sum_log_det_J = 0
-        for T in self.transformations:
-            x, log_det_J = T(x)
-            sum_log_det_J += log_det_J
-            z = x
-        return z, sum_log_det_J
+        Forward pass: data -> latent. We accumulate log-determinants for each transform.
 
-    def inverse(self, x):
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, D)
+            Data in the input (original) space.
+
+        Returns
+        -------
+        z : torch.Tensor of shape (B, D)
+            Data in latent space.
+        log_det_total : torch.Tensor of shape (B,)
+            Sum of log-determinants for all transforms.
         """
-        Transform a batch of data through the flow (from data to the base).
+        log_det_total = 0.0
+        for transform in self.transforms:
+            x, log_det = transform(x)
+            log_det_total += log_det
+        return x, log_det_total
 
-        Parameters:
-        x: [torch.Tensor]
-            The input to the inverse transformation of dimension `(batch_size, feature_dim)`
-        Returns:
-        z: [torch.Tensor]
-            The output of the inverse transformation of dimension `(batch_size, feature_dim)`
-        sum_log_det_J: [torch.Tensor]
-            The sum of the log determinants of the Jacobian matrices of the inverse transformations.
+    def inverse(
+        self, z: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        sum_log_det_J = 0
-        for T in reversed(self.transformations):
-            x, log_det_J = T.inverse(x)
-            sum_log_det_J += log_det_J
-            z = x
-        return z, sum_log_det_J
+        Inverse pass: latent -> data. We apply the inverse of each transform
+        in reverse order.
 
-    def log_prob(self, x):
+        Parameters
+        ----------
+        z : torch.Tensor of shape (B, D)
+            Latent representation.
+
+        Returns
+        -------
+        x : torch.Tensor of shape (B, D)
+            Reconstructed data in the original space.
+        log_det_total : torch.Tensor of shape (B,)
+            Sum of log-determinants for the inverse transforms.
         """
-        Compute the log probability of a batch of data under the flow.
+        log_det_total = 0.0
+        for transform in reversed(self.transforms):
+            z, log_det = transform.inverse(z)
+            log_det_total += log_det
+        return z, log_det_total
 
-        Parameters:
-        x: [torch.Tensor]
-            The data of dimension `(batch_size, feature_dim)`
-        Returns:
-        log_prob: [torch.Tensor]
-            The log probability of the data under the flow.
+    def log_prob(self, x: torch.Tensor) -> torch.Tensor:
         """
-        z, log_det_J = self.inverse(x)
-        base_log_prob = self.base().log_prob(z)
-        return base_log_prob + log_det_J
+        Compute log p(x) for the model, i.e. log probability under the flow
+        and base distribution.
 
-    def sample(self, sample_shape=(1,)):
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, D)
+
+        Returns
+        -------
+        log_px : torch.Tensor of shape (B,)
+            The log-likelihood of the data under the flow model.
         """
-        Sample from the flow.
+        # data -> latent
+        z, log_det = self.forward(x)
+        # base log prob
+        log_pz = self.base_dist.log_prob(z)
+        # total log prob
+        log_px = log_pz + log_det
+        return log_px
 
-        Parameters:
-        n_samples: [int]
-            Number of samples to generate.
-        Returns:
-        z: [torch.Tensor]
-            The samples of dimension `(n_samples, feature_dim)`
+    def sample(self, num_samples: int) -> torch.Tensor:
         """
-        z = self.base().sample(sample_shape)
-        return self.forward(z)[0]
+        Generate samples from the flow model by sampling from the base and
+        applying the inverse transform.
 
-    def loss(self, x):
+        Parameters
+        ----------
+        num_samples : int
+            Number of samples to draw.
+
+        Returns
+        -------
+        x_samples : torch.Tensor of shape (num_samples, D)
+            Samples in data space.
         """
-        Compute the negative mean log likelihood for the given data bath.
+        # Sample from base distribution
+        z = self.base_dist.sample((num_samples,))
+        # latent -> data
+        x, _ = self.inverse(z)
+        return x
 
-        Parameters:
-        x: [torch.Tensor]
-            A tensor of dimension `(batch_size, feature_dim)`
-        Returns:
-        loss: [torch.Tensor]
-            The negative mean log likelihood for the given data batch.
+    def loss(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the negative log-likelihood (NLL) loss = -E[log p(x)].
+
+        Parameters
+        ----------
+        x : torch.Tensor of shape (B, D)
+
+        Returns
+        -------
+        nll : torch.Tensor
+            The mean NLL over the batch.
         """
         return -torch.mean(self.log_prob(x))
 
 
-def build_transformations(D, num_hidden, num_transformations):
-    transformations = []
-    for i in range(num_transformations):
-        mask = torch.randint(0, 2, (D,))
 
-        # mask = torch.Tensor(
-        #    [1 if (i + j) % 2 == 0 else 0 for i in range(28) for j in range(28)]
-        # )
-        scale_net = nn.Sequential(
-            nn.Linear(D, num_hidden),
-            nn.LeakyReLU(negative_slope=0.01),  # Smoother gradients
-            nn.Linear(num_hidden, num_hidden),
-            nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(num_hidden, D),
-            nn.Tanh(),  ## Added tanh for stability
+def build_model(
+    height: int, width: int,
+    hidden_dim: int = 512,
+    num_coupling_layers: int = 4,
+    seed: int = 42,
+    base_dist = None,
+) -> Flow:
+    """
+    Builder for flow on flattened images of shape (height*width,).
+
+    Parameters
+    ----------
+    height : int
+        Image height (e.g. 28 for MNIST).
+    width : int
+        Image width (e.g. 28 for MNIST).
+    hidden_dim : int
+        Hidden dimension for MLPs in coupling layers.
+    num_coupling_layers : int
+        Number of coupling transformations to stack.
+    seed : int
+        Random seed for permutations.
+
+    Returns
+    -------
+    model : Flow
+        The Flow model.
+    """
+
+    D = height * width  # total features
+    transforms = []
+
+    for i in range(num_coupling_layers):
+        # Create a checkerboard mask
+        # Typically for 2D data, (x + y) % 2 for pixel (x,y),
+        # but we flatten, so let's reconstruct 2D indices:
+        mask_vals = []
+        for r in range(height):
+            for c in range(width):
+                if (r + c) % 2 == 0:
+                    mask_vals.append(1)
+                else:
+                    mask_vals.append(0)
+        mask = torch.tensor(mask_vals, dtype=torch.float32)
+        # Flip the mask on even layers
+        if i % 2 == 1:
+            mask = 1.0 - mask
+
+        scale_net = MLP(D, D, hidden_dim=hidden_dim, final_activation=nn.Tanh())
+        translate_net = MLP(D, D, hidden_dim=hidden_dim, final_activation=None)
+
+        coupling = MaskedAffineCoupling(
+            mask=mask,
+            scale_net=scale_net,
+            translate_net=translate_net
         )
-        translation_net = nn.Sequential(
-            nn.Linear(D, num_hidden),
-            nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(num_hidden, num_hidden),
-            nn.LeakyReLU(negative_slope=0.01),
-            nn.Linear(num_hidden, D),
-        )
-        transformations.append(MaskedCouplingLayer(scale_net, translation_net, mask))
-    return transformations
+
+        transforms.append(coupling)
+        # Add a permutation layer after each coupling
+        perm = InvertiblePermutation(num_features=D, seed=seed + i)
+        transforms.append(perm)
+
+    # Base distribution
+    base_dist = base_dist
+
+    flow = Flow(transforms=transforms, base_distribution=base_dist)
+    return flow

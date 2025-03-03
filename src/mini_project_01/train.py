@@ -1,6 +1,5 @@
 from models.unet import Unet
 from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
-from models.flow import build_transformations
 from data import load_mnist_dataset
 import torch
 from tqdm import tqdm
@@ -24,23 +23,29 @@ with hydra.initialize(config_path="../../configs", version_base="1.3"):
 
 
 def train(
-    model,
+    model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     data_loader: torch.utils.data.DataLoader,
     epochs: int,
+    scheduler: torch.optim.lr_scheduler._LRScheduler = None,
 ) -> None:
     """
-    Train a model.
+    Train a model for a specified number of epochs.
 
-    Parameters:
-    model:
-       The model to train.
-    optimizer: [torch.optim.Optimizer]
-         The optimizer to use for training.
-    data_loader: [torch.utils.data.DataLoader]
-            The data loader to use for training.
-    epochs: [int]
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model to train. Must support `.train()` and either `.loss(x)` or
+        a forward call returning a loss.
+    optimizer : torch.optim.Optimizer
+        The optimizer to use for gradient-based updates.
+    data_loader : torch.utils.data.DataLoader
+        Data loader providing the training samples.
+    epochs : int
         Number of epochs to train for.
+    scheduler : torch.optim.lr_scheduler._LRScheduler, optional
+        Optional learning-rate scheduler. If provided, `scheduler.step()` is
+        called at the end of each epoch.
     """
     model.train()
 
@@ -75,6 +80,9 @@ def train(
                 loss=f"⠀{loss.item():12.4f}", epoch=f"{epoch+1}/{epochs}"
             )
             progress_bar.update()
+        # Step the scheduler once per epoch
+        if scheduler is not None:
+            scheduler.step()
 
     progress_bar.close()
 
@@ -92,8 +100,9 @@ def train(
 if __name__ == "__main__":
     # Load the MNIST dataset
     train_loader, _ = load_mnist_dataset(
-        batch_size=cfg.training.batch_size, binarized=cfg.training.binarized
+        batch_size=cfg.training.batch_size, binarized=cfg.training.binarized, 
     )
+    scheduler = None
     if cfg.models.name == "vae":
         # Define prior distribution
         M = cfg.latent_dim
@@ -112,16 +121,29 @@ if __name__ == "__main__":
             DEVICE
         )
     elif cfg.models.name == "flow":
-        D = next(iter(train_loader))[0].shape[1]
-        base = hydra.utils.instantiate(cfg.priors.prior, M=D, K=10)
+        train_loader, _ = load_mnist_dataset(
+            batch_size=cfg.training.batch_size, binarized=cfg.training.binarized, do_logit=True,
+        )
+        D = 784
+        # Number of transformations and hidden dim from config
         num_transformations = cfg.num_transformations_flow
         num_hidden = cfg.num_hidden_flow
-        transformations = build_transformations(D, num_hidden, num_transformations)
+        base = torch.distributions.Independent(
+            torch.distributions.Normal(loc=torch.zeros(D).to(DEVICE), scale=torch.ones(D).to(DEVICE)),
+            reinterpreted_batch_ndims=1,
+        )
+
         model = hydra.utils.instantiate(
-            cfg.models.model, base=base, transformations=transformations
+            cfg.models.model, 28, 28, num_hidden, num_transformations, 42, base
         ).to(DEVICE)
 
     # Define optimizer
     optimizer = hydra.utils.instantiate(cfg.optimizer, params=model.parameters())
-
-    train(model, optimizer, data_loader=train_loader, epochs=cfg.training.epochs)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.1)
+    train(
+        model,
+        optimizer,
+        data_loader=train_loader,
+        epochs=cfg.training.epochs,
+        scheduler=scheduler,
+    )

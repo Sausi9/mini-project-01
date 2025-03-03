@@ -1,83 +1,176 @@
+import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-import torch
+from typing import Tuple
+
+
+def logit_transform(x: torch.Tensor, alpha: float = 1e-5) -> torch.Tensor:
+    """
+    Apply a logit transform to data in (0,1). We first clamp/clip the data
+    to [alpha, 1 - alpha], then apply logit.
+
+    logit(x) = log(x / (1 - x))
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input in the range [0,1].
+    alpha : float
+        Small constant for clipping to avoid infinite logit at 0 or 1.
+
+    Returns
+    -------
+    torch.Tensor
+        Logit-transformed tensor in (-∞, +∞).
+    """
+    # Clamp away from [0,1] boundaries
+    x = torch.clamp(x, alpha, 1 - alpha)
+    return torch.log(x) - torch.log1p(-x)
+
+
+def dequant_noise(x: torch.Tensor) -> torch.Tensor:
+    """
+    Dequantize an 8-bit image by:
+      1) Scaling x from [0,1] to [0,255]
+      2) Adding uniform random noise U(0,1)
+      3) Dividing by 256 to get back to [0,1]
+
+    This gives a continuous value in [0,1] instead of discrete multiples of 1/256.
+
+    Parameters
+    ----------
+    x : torch.Tensor in [0,1]
+        Input image tensor.
+
+    Returns
+    -------
+    torch.Tensor in [0,1]
+        Dequantized image.
+    """
+    x = x * 255.0
+    x = x + torch.rand_like(x)
+    x = x / 256.0
+    return x
 
 
 def load_mnist_dataset(
     data_dir: str = "data/",
-    threshold: int = 0.5,
     batch_size: int = 128,
     binarized: bool = True,
-) -> tuple[DataLoader, DataLoader]:
+    threshold: float = 0.5,
+    flatten: bool = True,
+    do_logit: bool = False,
+    alpha: float = 1e-5,
+    shuffle_test: bool = False,
+) -> Tuple[DataLoader, DataLoader]:
     """
-    Load the binarized MNIST dataset (train and test) from the `data_dir`.
+    Load MNIST as either binarized or continuous, optionally dequantizing and
+    logit-transforming the images. Returns train and test DataLoaders.
 
-    If the dataset is not found in the `data_dir`, it will be downloaded.
+    Parameters
+    ----------
+    data_dir : str
+        Directory where the MNIST dataset is (or will be) downloaded.
+    batch_size : int
+        Batch size for the DataLoaders.
+    binarized : bool
+        If True, load data in binarized form via 'threshold'.
+    threshold : float
+        Threshold for binarizing pixel values. If pixel > threshold => 1, else 0.
+    flatten : bool
+        If True, reshapes each image to (784,). Otherwise keeps shape [1, 28, 28].
+    do_logit : bool
+        If True, apply a logit transform after scaling/dequant. 
+        That is, x <- log(x/(1-x)).
+    alpha : float
+        Small constant for clipping during logit transform to avoid infinite values.
+    shuffle_test : bool
+        If True, shuffle the test set. Typically False is standard for reproducibility.
 
-    Parameters:
-    data_dir: [str]
-        Directory where the dataset is stored.
-
-    Returns:
-    train_dataset: [torch.utils.data.Dataset]
-        The training dataset.
-    test_dataset: [torch.utils.data.Dataset]
-        The test dataset.
+    Returns
+    -------
+    train_loader : DataLoader
+        Training set DataLoader.
+    test_loader : DataLoader
+        Test set DataLoader.
     """
 
-    # Load MNIST as binarized at 'thresshold' and create data loaders
+    # Build the base transform list
+    base_transforms = [transforms.ToTensor()]  # Convert PIL image to [0,1] float
+
     if binarized:
-        mnist_train_loader = DataLoader(
-            datasets.MNIST(
-                data_dir,
-                train=True,
-                download=True,
-                transform=transforms.Compose(
-                    [
-                        transforms.ToTensor(),
-                        transforms.Lambda(lambda x: (threshold < x).float().squeeze()),
-                    ]
-                ),
-            ),
-            batch_size=batch_size,
-            shuffle=True,
-        )
-        mnist_test_loader = DataLoader(
-            datasets.MNIST(
-                data_dir,
-                train=False,
-                download=True,
-                transform=transforms.Compose(
-                    [
-                        transforms.ToTensor(),
-                        transforms.Lambda(lambda x: (threshold < x).float().squeeze()),
-                    ]
-                ),
-            ),
-            batch_size=batch_size,
-            shuffle=True,
-        )
+        # If binarized, we threshold the data
+        base_transforms.append(transforms.Lambda(
+            lambda x: (x > threshold).float()
+        ))
     else:
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Lambda(lambda x: x + torch.sigmoid(torch.randn_like(x)) / 255),
-                transforms.Lambda(lambda x: x.clamp(0, 1)),
-                transforms.Lambda(lambda x: x.flatten()),
-            ]
+        # If not binarized, do dequant
+        base_transforms.append(transforms.Lambda(dequant_noise))
+
+    # If we haven't binarized, the data is in [0,1]. Optionally do a logit transform.
+    # Typically, we do it after dequantizing so that the logit is well-defined.
+    if not binarized and do_logit:
+        base_transforms.append(
+            transforms.Lambda(lambda x: logit_transform(x, alpha=alpha))
         )
-        mnist_train_loader = DataLoader(
-            datasets.MNIST(data_dir, train=True, download=True, transform=transform),
-            batch_size=batch_size,
-            shuffle=True,
+
+    # Flatten, if requested
+    if flatten:
+        base_transforms.append(
+            transforms.Lambda(lambda x: x.view(-1))
         )
-        mnist_test_loader = DataLoader(
-            datasets.MNIST(data_dir, train=False, download=True, transform=transform),
-            batch_size=batch_size,
-            shuffle=True,
-        )
-    return mnist_train_loader, mnist_test_loader
+
+    # Compose everything
+    transform = transforms.Compose(base_transforms)
+
+    # Build Datasets
+    train_dataset = datasets.MNIST(
+        root=data_dir,
+        train=True,
+        download=True,
+        transform=transform
+    )
+    test_dataset = datasets.MNIST(
+        root=data_dir,
+        train=False,
+        download=True,
+        transform=transform
+    )
+
+    # Build DataLoaders
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle_test
+    )
+
+    return train_loader, test_loader
 
 
 if __name__ == "__main__":
-    load_mnist_dataset()
+    # Example usage:
+    # 1) Binarized data
+    bin_train, bin_test = load_mnist_dataset(
+        binarized=True,
+        threshold=0.5,
+        flatten=True,
+    )
+    # 2) Continuous + dequant + logit
+    cont_train, cont_test = load_mnist_dataset(
+        binarized=False,
+        do_dequant=True,
+        do_logit=True,
+        alpha=1e-5,
+        flatten=True
+    )
+
+    # Check shapes
+    x_batch, y_batch = next(iter(bin_train))
+    print("[Binarized] x_batch shape:", x_batch.shape)
+    x_batch, y_batch = next(iter(cont_train))
+    print("[Dequant+Logit] x_batch shape:", x_batch.shape)

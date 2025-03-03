@@ -1,5 +1,5 @@
 # Hyperparameters for training the model
-batch_size: 15000
+batch_size: 5000
 epochs: 50
 binarized: False
 

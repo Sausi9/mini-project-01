@@ -3,7 +3,6 @@ defaults:
   - training: training_config_flow
   - optimizer: adam
   - models: flow
-  - priors: mog
 
 
 flow:
@@ -11,7 +10,6 @@ flow:
   - training: training_config_flow
   - optimizer: adam
   - models: flow
-  - priors: mog
 
 vae_vamp:
   - _self_
@@ -22,5 +20,5 @@ vae_vamp:
 
 latent_dim: 10
 T: 1000
-num_transformations_flow: 10
-num_hidden_flow: 2048
+num_transformations_flow: 12
+num_hidden_flow: 1024
