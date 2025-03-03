@@ -13,10 +13,12 @@ from helpers import GAUSSIAN, MOG, VAMP
 with hydra.initialize(config_path="../../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
+
 class VAE(nn.Module):
     """
     Define a Variational Autoencoder (VAE) model.
     """
+
     def __init__(self, prior, decoder, encoder):
         """
         Parameters:
@@ -37,7 +39,7 @@ class VAE(nn.Module):
         self.encoder = encoder
 
         # If using VampPrior, it needs access to the encoder
-        if hasattr(self.prior, 'encoder'):
+        if hasattr(self.prior, "encoder"):
             self.prior.encoder = encoder
 
     def elbo_gaussian(self, x):
@@ -51,7 +53,9 @@ class VAE(nn.Module):
         """
         q = self.encoder(x)
         z = q.rsample()
-        elbo = torch.mean(self.decoder(z).log_prob(x) - td.kl_divergence(q, self.prior()), dim=0)
+        elbo = torch.mean(
+            self.decoder(z).log_prob(x) - td.kl_divergence(q, self.prior()), dim=0
+        )
         return elbo
 
     def elbo_mog(self, x, num_samples=5):
@@ -71,12 +75,11 @@ class VAE(nn.Module):
         log_qz = q.log_prob(z)
         log_pz = self.prior().log_prob(z)
 
-        kl_mc = torch.mean(log_qz - log_pz, dim = (0,1))
+        kl_mc = torch.mean(log_qz - log_pz, dim=(0, 1))
 
-        elbo = torch.mean(self.decoder(z).log_prob(x_reshaped), dim=(0,1)) - kl_mc
+        elbo = torch.mean(self.decoder(z).log_prob(x_reshaped), dim=(0, 1)) - kl_mc
 
         return elbo
-
 
     def elbo_vamp(self, x, num_samples=5):
         """
@@ -97,21 +100,31 @@ class VAE(nn.Module):
 
         # Compute the mixture components from pseudo-inputs
         pseudo_inputs = self.prior.pseudo_inputs  # [K, 784]
-        q_pseudo = self.encoder(pseudo_inputs)  # batch_shape=[K], event_shape=[latent_dim]
+        q_pseudo = self.encoder(
+            pseudo_inputs
+        )  # batch_shape=[K], event_shape=[latent_dim]
         means = q_pseudo.base_dist.loc  # [K, latent_dim]
         scales = q_pseudo.base_dist.scale  # [K, latent_dim]
 
         # Define the mixture distribution
-        mix = td.Categorical(torch.ones(self.prior.K, device=means.device))  # Equal weights, [K]
-        comp = td.Independent(td.Normal(means, scales), 1)  # [K] batch, [latent_dim] event
-        prior_mixture = td.MixtureSameFamily(mix, comp)  # batch_shape=[], event_shape=[latent_dim]
+        mix = td.Categorical(
+            torch.ones(self.prior.K, device=means.device)
+        )  # Equal weights, [K]
+        comp = td.Independent(
+            td.Normal(means, scales), 1
+        )  # [K] batch, [latent_dim] event
+        prior_mixture = td.MixtureSameFamily(
+            mix, comp
+        )  # batch_shape=[], event_shape=[latent_dim]
 
         # Compute log_pz using log_prob
         log_pz = prior_mixture.log_prob(z)  # [num_samples, batch_size]
 
         # Compute ELBO
         kl_mc = torch.mean(log_qz - log_pz, dim=(0, 1))  # scalar
-        elbo = torch.mean(self.decoder(z).log_prob(x_reshaped), dim=(0, 1)) - kl_mc  # scalar
+        elbo = (
+            torch.mean(self.decoder(z).log_prob(x_reshaped), dim=(0, 1)) - kl_mc
+        )  # scalar
 
         return elbo
 
@@ -124,9 +137,10 @@ class VAE(nn.Module):
            Number of samples to generate.
         """
         z = self.prior().sample(torch.Size([n_samples]))
-        #return self.decoder(z).sample()
+        # return self.decoder(z).sample()
         # Switch in the above line if you want to sample from the decoder distribution
         return self.decoder(z).mean
+
     def forward(self, x):
         """
         Compute the negative ELBO for the given batch of data.
@@ -136,18 +150,20 @@ class VAE(nn.Module):
            A tensor of dimension `(batch_size, feature_dim1, feature_dim2)`
         """
         # If using VampPrior, sync encoder parameters before computing ELBO
-        if hasattr(self.prior, 'encoder'):
+        if hasattr(self.prior, "encoder"):
             with torch.no_grad():
-                for p1, p2 in zip(self.prior.encoder.parameters(), self.encoder.parameters()):
+                for p1, p2 in zip(
+                    self.prior.encoder.parameters(), self.encoder.parameters()
+                ):
                     p1.copy_(p2)
 
         prior = cfg.priors.name
         if prior == GAUSSIAN:
-          elbo = self.elbo_gaussian
+            elbo = self.elbo_gaussian
         if prior == MOG:
-          elbo = self.elbo_mog
+            elbo = self.elbo_mog
         if prior == VAMP:
-          elbo = self.elbo_vamp
+            elbo = self.elbo_vamp
         return -elbo(x)
 
 
@@ -198,7 +214,7 @@ class BernoulliDecoder(nn.Module):
         """
         super(BernoulliDecoder, self).__init__()
         self.decoder_net = decoder_net
-        self.std = nn.Parameter(torch.ones(28, 28)*0.5, requires_grad=True)
+        self.std = nn.Parameter(torch.ones(28, 28) * 0.5, requires_grad=True)
 
     def forward(self, z):
         """
@@ -220,8 +236,10 @@ def encoder_net(M):
         nn.ReLU(),
         nn.Linear(512, 512),
         nn.ReLU(),
-        nn.Linear(512, M*2),
+        nn.Linear(512, M * 2),
     )
+
+
 def decoder_net(M):
     return nn.Sequential(
         nn.Linear(M, 512),
@@ -229,5 +247,5 @@ def decoder_net(M):
         nn.Linear(512, 512),
         nn.ReLU(),
         nn.Linear(512, 784),
-        nn.Unflatten(-1, (28, 28))
+        nn.Unflatten(-1, (28, 28)),
     )

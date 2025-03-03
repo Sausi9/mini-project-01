@@ -1,14 +1,23 @@
 import os
 import torch
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+DEVICE = torch.device(
+    "cuda"
+    if torch.cuda.is_available()
+    else "mps"
+    if torch.backends.mps.is_available()
+    else "cpu"
+)
 
-GAUSSIAN = 'gaussian'
-MOG = 'mog'
-VAMP = 'vamp'
+GAUSSIAN = "gaussian"
+MOG = "mog"
+VAMP = "vamp"
 
-VAE_CONSTS = 'vae'
-DDPM = 'ddpm'
+
+VAE_CONSTS = "vae"
+DDPM = "ddpm"
+FLOW = "flow"
+
 
 def get_latest_model(architecture: str = "vae") -> str:
     """Retrieve the latest model checkpoint for the given architecture."""
