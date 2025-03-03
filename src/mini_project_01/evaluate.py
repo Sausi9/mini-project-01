@@ -31,7 +31,6 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
 
     model.eval()
 
-
     total_elbo = 0
     num_batches = 0
 
@@ -40,7 +39,7 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
             x = x[0].to(DEVICE)
 
             if cfg.priors.name == GAUSSIAN:
-              elbo = model.elbo_gaussian(x)
+                elbo = model.elbo_gaussian(x)
             elif cfg.priors.name == MOG:
                 elbo = model.elbo_mog(x)
             elif cfg.priors.name == VAMP:
@@ -48,15 +47,13 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
             else:
                 raise ValueError(f"Unknown prior type: {model.prior}")
 
-            total_elbo += elbo.item() # Accumulate the ELBO
+            total_elbo += elbo.item()  # Accumulate the ELBO
             num_batches += 1
 
     # Compute the average ELBO over all batches
     avg_elbo = total_elbo / num_batches
 
     return avg_elbo
-
-
 
 
 if __name__ == "__main__":
@@ -68,7 +65,9 @@ if __name__ == "__main__":
     decoder = BernoulliDecoder(decoder_net(M))
     encoder = GaussianEncoder(encoder_net(M))
 
-    model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
+    model = hydra.utils.instantiate(
+        cfg.models.model, prior=prior, decoder=decoder, encoder=encoder
+    ).to(DEVICE)
 
     # Load the MNIST dataset
     _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)

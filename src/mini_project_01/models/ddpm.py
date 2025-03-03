@@ -27,8 +27,10 @@ class DDPM(nn.Module):
 
         self.beta = nn.Parameter(torch.linspace(beta_1, beta_T, T), requires_grad=False)
         self.alpha = nn.Parameter(1 - self.beta, requires_grad=False)
-        self.alpha_cumprod = nn.Parameter(self.alpha.cumprod(dim=0), requires_grad=False)
-    
+        self.alpha_cumprod = nn.Parameter(
+            self.alpha.cumprod(dim=0), requires_grad=False
+        )
+
     def negative_elbo(self, x):
         """
         Evaluate the DDPM negative ELBO on a batch of data.
@@ -70,6 +72,7 @@ class DDPM(nn.Module):
             factor = (1-self.alpha[t])/(torch.sqrt(1-self.alpha_cumprod[t]))
             z = torch.randn(shape) if t > 0 else torch.zeros(shape)
             x_t = 1/torch.sqrt(self.alpha[t])*(x_t-factor*self.network(x_t,tnet)) + torch.sqrt(self.beta[t])*z
+
 
         return x_t
 

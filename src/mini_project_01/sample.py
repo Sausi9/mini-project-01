@@ -1,10 +1,6 @@
 import hydra
-from omegaconf import DictConfig
-import os
-from torch import nn
 import torch
-from models.priors import GaussianPrior
-from models.vae import VAE, BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
 from data import load_mnist_dataset
 from torchvision.utils import save_image
 from helpers import get_latest_model, DEVICE
@@ -18,6 +14,7 @@ from helpers import GAUSSIAN
 # Load configuration
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
+
 
 def sample(model) -> None:
     """
@@ -37,12 +34,15 @@ def sample(model) -> None:
     # Sample from the model
     model.eval()
     with torch.no_grad():
-        if cfg.models.name == 'ddpm':
-            samples = model.sample((64,784))
-            samples = samples /2 + 0.5
+        if cfg.models.name == "ddpm":
+            samples = model.sample((64, 784))
+            samples = samples / 2 + 0.5
+        elif cfg.models.name == "flow":
+            samples = model.sample(64)
+            # samples = samples / 2 + 0.5
         else:
             samples = model.sample(n_samples=64)
-        save_image(samples.view(64, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
+        save_image(samples.view(-1, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
 
     print(f"Samples saved to samples/sample_{cfg.models.name}.png")
 
@@ -95,11 +95,13 @@ def plot_from_posterior(model, data_loader, M, n_samples=200):
 
     # Plot the samples
     plt.figure(figsize=(8, 6))
-    scatter = plt.scatter(all_z[:, 0], all_z[:, 1], c=all_labels, cmap='tab10', alpha=0.7)
-    plt.colorbar(scatter, label='Class Label')
-    plt.xlabel('Latent Dimension 1')
-    plt.ylabel('Latent Dimension 2')
-    plt.title('Posterior Samples Colored by Class Label')
+    scatter = plt.scatter(
+        all_z[:, 0], all_z[:, 1], c=all_labels, cmap="tab10", alpha=0.7
+    )
+    plt.colorbar(scatter, label="Class Label")
+    plt.xlabel("Latent Dimension 1")
+    plt.ylabel("Latent Dimension 2")
+    plt.title("Posterior Samples Colored by Class Label")
     plt.savefig(f"samples/posterior_{cfg.models.name}.png")
     # plt.show()
 
@@ -111,6 +113,7 @@ def plot_from_prior(model, M, n_samples=200):
     Plot samples from the prior distribution of the model.
 
     Parameters:
+    model: [VAE]
     model: [VAE]
         The VAE model to sample from.
     n_samples: [int]
@@ -129,18 +132,20 @@ def plot_from_prior(model, M, n_samples=200):
     # Perform PCA if M > 2
     if M > 2:
         from sklearn.decomposition import PCA
+
         pca = PCA(n_components=2)
         z_prior = pca.fit_transform(z_prior)
 
     # Plot the samples
     plt.figure(figsize=(8, 6))
     plt.scatter(z_prior[:, 0], z_prior[:, 1], c="green", alpha=0.7, label="Prior p(z)")
-    plt.xlabel('Latent Dimension 1')
-    plt.ylabel('Latent Dimension 2')
-    plt.title('Prior Samples')
+    plt.xlabel("Latent Dimension 1")
+    plt.ylabel("Latent Dimension 2")
+    plt.title("Prior Samples")
     plt.legend()
     plt.savefig(f"samples/prior_{cfg.models.name}.png")
     print(f"Prior samples plot saved to samples/prior_{cfg.models.name}.png")
+
 
 def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     model.eval()
@@ -167,6 +172,7 @@ def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     # PCA if M > 2
     if M > 2:
         from sklearn.decomposition import PCA
+
         pca = PCA(n_components=2)
         z_prior = pca.fit_transform(z_prior)
         all_z = pca.fit_transform(all_z)
@@ -174,14 +180,15 @@ def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     # Plot
     plt.figure(figsize=(8, 6))
     plt.scatter(z_prior[:, 0], z_prior[:, 1], c="green", alpha=0.5, label="Prior p(z)")
-    plt.scatter(all_z[:, 0], all_z[:, 1], c="blue", alpha=0.5, label="Agg. Posterior q(z)")
-    plt.xlabel('Latent Dim 1')
-    plt.ylabel('Latent Dim 2')
-    plt.title(f'Prior vs. Agg. Posterior ({cfg.models.name})')
+    plt.scatter(
+        all_z[:, 0], all_z[:, 1], c="blue", alpha=0.5, label="Agg. Posterior q(z)"
+    )
+    plt.xlabel("Latent Dim 1")
+    plt.ylabel("Latent Dim 2")
+    plt.title(f"Prior vs. Agg. Posterior ({cfg.models.name})")
     plt.legend()
     plt.savefig(f"samples/prior_posterior_{cfg.models.name}.png")
     print(f"Plot saved to samples/prior_posterior_{cfg.models.name}.png")
-
 
 
 def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
@@ -229,12 +236,16 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
         # Use KDE to estimate 2D density from prior samples
         kde = gaussian_kde(z_prior_2d.T)
         positions = np.column_stack((X.flatten(), Y.flatten()))  # Shape: [10000, 2]
-        Z = kde.evaluate(positions.T).reshape(100, 100)  # Evaluate and reshape back to grid
+        Z = kde.evaluate(positions.T).reshape(
+            100, 100
+        )  # Evaluate and reshape back to grid
     else:
         # For M=2, compute density directly (e.g., for GaussianPrior)
         positions = np.dstack((X, Y))
         positions_tensor = torch.tensor(positions, dtype=torch.float32)
-        log_probs = prior.log_prob(positions_tensor).exp()  # Convert log_prob to probability
+        log_probs = prior.log_prob(
+            positions_tensor
+        ).exp()  # Convert log_prob to probability
         Z = log_probs.numpy()
 
     # --- Posterior Samples ---
@@ -255,16 +266,22 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
         pca = PCA(n_components=2)
         all_z = pca.fit_transform(all_z)
     elif M != 2:
-        raise ValueError(f"Latent dimension M={M} is not supported for direct 2D plotting. Use M=2 or M>2 with PCA.")
+        raise ValueError(
+            f"Latent dimension M={M} is not supported for direct 2D plotting. Use M=2 or M>2 with PCA."
+        )
 
     # Plot
     plt.figure(figsize=(8, 8))  # Maintain figure size but adjust plot scaling
-    contour = plt.contourf(X, Y, Z, levels=20, cmap='viridis', alpha=1.0)  # Contour plot of prior density with transparency
-    plt.scatter(all_z[:, 0], all_z[:, 1], c='black', s=10, alpha=0.5)  # Posterior samples as black dots
-    plt.colorbar(contour, label='Density')  # Add colorbar
-    plt.xlabel('Latent Dimension 1')
-    plt.ylabel('Latent Dimension 2')
-    plt.title('Prior Density with Posterior Samples')
+    contour = plt.contourf(
+        X, Y, Z, levels=20, cmap="viridis", alpha=1.0
+    )  # Contour plot of prior density with transparency
+    plt.scatter(
+        all_z[:, 0], all_z[:, 1], c="black", s=10, alpha=0.5
+    )  # Posterior samples as black dots
+    plt.colorbar(contour, label="Density")  # Add colorbar
+    plt.xlabel("Latent Dimension 1")
+    plt.ylabel("Latent Dimension 2")
+    plt.title("Prior Density with Posterior Samples")
 
     # Set axes limits to match the data range, ensuring the contour fills the space
     plt.xlim(-10, 10)  # Match the grid range
@@ -272,8 +289,8 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
 
     print(cfg.priors.name)
     if cfg.priors.name == GAUSSIAN:
-      plt.xlim(-4, 4)
-      plt.ylim(-4, 4)
+        plt.xlim(-4, 4)
+        plt.ylim(-4, 4)
     # Adjust layout to minimize white space
     plt.tight_layout()
 
@@ -282,11 +299,28 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
 
     plt.close()  # Close
 
-if __name__ == "__main__":
 
-    if cfg.models.name == 'ddpm':
+if __name__ == "__main__":
+    if cfg.models.name == "ddpm":
         net = Unet()
-        model = hydra.utils.instantiate(cfg.models.model,network = net,T = cfg.T)
+        model = hydra.utils.instantiate(cfg.models.model, network=net, T=cfg.T)
+        sample(model)
+    if cfg.models.name == "flow":
+        D = 784
+        # Number of transformations and hidden dim from config
+        num_transformations = cfg.num_transformations_flow
+        num_hidden = cfg.num_hidden_flow
+        base = torch.distributions.Independent(
+            torch.distributions.Normal(
+                loc=torch.zeros(D).to(DEVICE), scale=torch.ones(D).to(DEVICE)
+            ),
+            reinterpreted_batch_ndims=1,
+        )
+
+        model = hydra.utils.instantiate(
+            cfg.models.model, 28, 28, num_hidden, num_transformations, 42, base
+        ).to(DEVICE)
+
         sample(model)
     else:
         M = cfg.latent_dim
@@ -297,7 +331,9 @@ if __name__ == "__main__":
         decoder = BernoulliDecoder(decoder_net(M))
         encoder = GaussianEncoder(encoder_net(M))
 
-        model = hydra.utils.instantiate(cfg.models.model, prior=prior, decoder=decoder, encoder=encoder).to(DEVICE)
+        model = hydra.utils.instantiate(
+            cfg.models.model, prior=prior, decoder=decoder, encoder=encoder
+        ).to(DEVICE)
 
         # Sample from the model
         sample(model)
@@ -305,7 +341,6 @@ if __name__ == "__main__":
         # Plot samples from the posterior
         _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
         plot_from_posterior(model, test_loader, M)
-
 
         # Plot samples from the prior
         plot_from_prior(model, M)
