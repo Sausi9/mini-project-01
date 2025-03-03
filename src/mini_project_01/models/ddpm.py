@@ -44,15 +44,11 @@ class DDPM(nn.Module):
         """
 
         ### Implement Algorithm 1 here ###
-        t = torch.randint(1, high=self.T, size=())
-        tnet = torch.full(size=(x.shape[0], 1), fill_value=t / self.T)
-        eps = torch.randn(size=x.shape)
-        dist = eps - self.network(
-            torch.sqrt(self.alpha_cumprod[t]) * x
-            + torch.sqrt(1 - self.alpha_cumprod[t]) * eps,
-            tnet,
-        )
-        neg_elbo = torch.square(torch.linalg.vector_norm(dist, dim=1, ord=2))
+        t = torch.randint(high=self.T,size=())
+        tnet = torch.full(size=(x.shape[0],1),fill_value = t/self.T).to(x.device)
+        eps = torch.randn(size=x.shape).to(x.device)
+        dist = eps-self.network(torch.sqrt(self.alpha_cumprod[t])*x+torch.sqrt(1-self.alpha_cumprod[t])*eps,tnet)
+        neg_elbo = torch.linalg.vector_norm(dist,dim=1,ord=2)
 
         return neg_elbo
 
@@ -71,18 +67,12 @@ class DDPM(nn.Module):
         x_t = torch.randn(shape)
 
         # Sample x_t given x_{t+1} until x_0 is sampled
-        for t in range(self.T - 1, -1, -1):
-            tnet = torch.full(size=(shape[0], 1), fill_value=t / self.T)
-            factor = (1 - self.alpha[t]) / (torch.sqrt(1 - self.alpha_cumprod[t]))
-            z = (
-                torch.randn(shape).to(self.alpha.device)
-                if t > 0
-                else torch.zeros(shape)
-            )
-            x_t = (
-                1 / torch.sqrt(self.alpha[t]) * (x_t - factor * self.network(x_t, tnet))
-                + torch.sqrt(self.beta[t]) * z
-            )
+        for t in range(self.T-1, -1, -1):
+            tnet = torch.full(size=(shape[0],1),fill_value = t/self.T)
+            factor = (1-self.alpha[t])/(torch.sqrt(1-self.alpha_cumprod[t]))
+            z = torch.randn(shape) if t > 0 else torch.zeros(shape)
+            x_t = 1/torch.sqrt(self.alpha[t])*(x_t-factor*self.network(x_t,tnet)) + torch.sqrt(self.beta[t])*z
+
 
         return x_t
 
