@@ -20,5 +20,5 @@ vae_vamp:
 
 latent_dim: 10
 T: 1000
-num_transformations_flow: 12
-num_hidden_flow: 1024
+num_transformations_flow: 20
+num_hidden_flow: 512
