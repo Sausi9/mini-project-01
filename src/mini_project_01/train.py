@@ -72,8 +72,10 @@ def train(model: VAE, optimizer: torch.optim.Optimizer, data_loader: torch.utils
     if cfg.models.name == VAE_CONSTS:
         prior_name = cfg.priors.name
         model_path_and_name = f"models/{model_name}/{model_name}_{prior_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt"
+        print(f"Model saved at: {model_path_and_name}")
     else:
         model_path_and_name = f"models/{model_name}/{model_name}.pt"
+        print(f"Model saved at: {model_path_and_name}")
 
     # Create the directory if it does not exist
     os.makedirs(os.path.dirname(model_path_and_name), exist_ok=True)

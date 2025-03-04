@@ -3,13 +3,15 @@ from data import load_mnist_dataset
 import hydra
 from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net, VAE
 from helpers import DEVICE, get_latest_model, GAUSSIAN, MOG, VAMP
+import os
+import numpy as np
 
 # Load configuration
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
 
-def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
+def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader, model_name: str = None) -> float:
     """
     Evaluate the ELBO of a VAE model on a dataset.
 
@@ -23,9 +25,16 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
     avg_elbo: [float]
         The average ELBO of the model on the test data.
     """
+    
+    
+    # Load the latest model if no model is provided
+    wnb = model_name
 
-    # Load the latest model
-    wnb = get_latest_model(cfg.models.name)
+    if model_name is None:
+        wnb = get_latest_model(cfg.models.name)
+    else:
+        wnb = f"models/{cfg.models.name}/{model_name}"
+
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -56,6 +65,50 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader) -> float:
 
     return avg_elbo
 
+def eval_elbo_mean_std(model: VAE, data_loader: torch.utils.data.DataLoader, prior: str) -> tuple[float, float]:
+    """
+    Fetch all the trained models with the given prior. Compute the ELBO of each model on the test data.
+    Compute the mean and standard deviation of the ELBOs.
+
+    Save corresponding model name, prior name, elbos and the mean and std of the elbos in a text file.
+    """
+    
+    print(f"Fetching models with {prior} prior")
+    vae_models = [f for f in os.listdir("models/vae") if prior in f]
+
+    print(f"Models with {prior} prior: {vae_models}")
+
+    # Save the model name and prior name to a text file
+    with open(f"samples/elbo_{cfg.models.name}_{prior}.txt", "w") as f:
+        f.write(f"Model name: {cfg.models.name}\n")
+        f.write(f"Prior name: {prior}\n")
+    
+    elbos = []
+    for model_name in vae_models:
+        # Evaluate the ELBO of each model
+        elbo = eval_elbo(model, data_loader, model_name)
+        elbos.append(elbo)
+
+        # Append pretrained model name and ELBO to the text file
+        with open(f"samples/elbo_{cfg.models.name}_{prior}.txt", "a") as f:
+            f.write(f"Model: {model_name}, ELBO: {elbo}\n")
+
+
+    
+    # Get the mean and standard deviation of the ELBOs
+    elbos = np.array(elbos)
+
+    mean_elbo = np.mean(elbos)
+    std_elbo = np.std(elbos)
+
+    # Append the mean and standard deviation to the text file
+    with open(f"samples/elbo_{cfg.models.name}_{prior}.txt", "a") as f:
+        f.write(f"\nMean ELBO: {mean_elbo}\n")
+        f.write(f"Std ELBO: {std_elbo}\n")
+
+    print("Elbo evaluation complete, results saved to file: ", f"samples/elbo_{cfg.models.name}_{prior}.txt")
+    
+    return mean_elbo, std_elbo
 
 
 
@@ -73,5 +126,5 @@ if __name__ == "__main__":
     # Load the MNIST dataset
     _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
 
-    elbo = eval_elbo(model, test_loader)
-    print(f"ELBO: {elbo}")
+    # Evaluate the ELBO of models with specified prior
+    mean_elbo, std_elbo = eval_elbo_mean_std(model, test_loader, cfg.priors.name)
