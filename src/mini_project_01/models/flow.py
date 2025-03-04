@@ -322,7 +322,7 @@ class Flow(nn.Module):
         log_px = log_pz + log_det
         return log_px
 
-    def sample(self, num_samples: int) -> torch.Tensor:
+    def sample(self, num_samples: int, temperature: float = 1) -> torch.Tensor:
         """
         Generate samples from the flow model by sampling from the base and
         applying the inverse transform.
@@ -331,17 +331,20 @@ class Flow(nn.Module):
         ----------
         num_samples : int
             Number of samples to draw.
+        temperature : float
+            Temperature for sampling (default 1). Higher temperature
+            leads to more exploration in the latent space.
 
         Returns
         -------
         x_samples : torch.Tensor of shape (num_samples, D)
             Samples in data space.
         """
-        # Sample from base distribution
+
         z = self.base_dist.sample((num_samples,))
-        # latent -> data
-        x, _ = self.inverse(z)
-        return x
+        z = z * temperature
+        x_samples, _ = self.inverse(z)
+        return x_samples
 
     def loss(self, x: torch.Tensor) -> torch.Tensor:
         """
