@@ -172,12 +172,11 @@ cython_debug/
 # Ignor dataset
 data/
 
-# Ignore samples
-samples/
-
 # Ignore models weights and biases
 # /models
 
 #ignore .err and .out
 *.err
 *.out
+
+flow.pt

@@ -1,0 +1,530 @@
+=== Training Run 1 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_22-25-07.pt
+=== Training Run 2 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_22-42-19.pt
+=== Training Run 3 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_22-58-42.pt
+=== Training Run 4 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_23-17-26.pt
+=== Training Run 5 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_23-35-29.pt
+=== Training Run 6 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-03_23-54-19.pt
+=== Training Run 7 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-04_00-12-58.pt
+=== Training Run 8 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-04_00-31-38.pt
+=== Training Run 9 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-04_00-50-17.pt
+=== Training Run 10 ===
+Training VAE...
+
+Device: cpu
+Configuration:
+latent_dim: 10
+T: 1000
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: true
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.001
+models:
+  model:
+    _target_: models.vae.VAE
+  name: vae
+priors:
+  prior:
+    _target_: models.priors.GaussianPrior
+    M: ${latent_dim}
+  name: gaussian
+
+
+Model architecture:
+VAE(
+  (prior): GaussianPrior()
+  (decoder): BernoulliDecoder(
+    (decoder_net): Sequential(
+      (0): Linear(in_features=10, out_features=512, bias=True)
+      (1): ReLU()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): ReLU()
+      (4): Linear(in_features=512, out_features=784, bias=True)
+      (5): Unflatten(dim=-1, unflattened_size=(28, 28))
+    )
+  )
+  (encoder): GaussianEncoder(
+    (encoder_net): Sequential(
+      (0): Flatten(start_dim=1, end_dim=-1)
+      (1): Linear(in_features=784, out_features=512, bias=True)
+      (2): ReLU()
+      (3): Linear(in_features=512, out_features=512, bias=True)
+      (4): ReLU()
+      (5): Linear(in_features=512, out_features=20, bias=True)
+    )
+  )
+)
+
+Training complete.
+Model saved at: models/vae/vae_gaussian_2025-03-04_01-08-54.pt

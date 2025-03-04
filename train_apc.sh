@@ -1,4 +1,5 @@
-# Run the training script 10 times
+# Run the training script 10 times on Arnór Performance Cluster (APC) for vae experiments.
+# Rename the output file to the appropriate prior name.
 for i in {1..10}
 do
     {
