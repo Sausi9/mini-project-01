@@ -1,0 +1,482 @@
+=== Starting Training ===
+Training model...
+
+Device: cuda
+Configuration:
+flow:
+- _self_
+- training: training_config_flow
+- optimizer: adam
+- models: flow
+vae_vamp:
+- _self_
+- training: training_config
+- optimizer: adam
+- models: vae
+- priors: vamp
+latent_dim: 10
+T: 1000
+num_transformations_flow: 20
+num_hidden_flow: 512
+training:
+  batch_size: 64
+  epochs: 50
+  binarized: false
+  model_path: models/
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 0.0001
+models:
+  model:
+    _target_: models.flow.build_model
+  name: flow
+
+
+Model architecture:
+Flow(
+  (transforms): ModuleList(
+    (0): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (1): InvertiblePermutation()
+    (2): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (3): InvertiblePermutation()
+    (4): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (5): InvertiblePermutation()
+    (6): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (7): InvertiblePermutation()
+    (8): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (9): InvertiblePermutation()
+    (10): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (11): InvertiblePermutation()
+    (12): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (13): InvertiblePermutation()
+    (14): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (15): InvertiblePermutation()
+    (16): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (17): InvertiblePermutation()
+    (18): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (19): InvertiblePermutation()
+    (20): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (21): InvertiblePermutation()
+    (22): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (23): InvertiblePermutation()
+    (24): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (25): InvertiblePermutation()
+    (26): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (27): InvertiblePermutation()
+    (28): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (29): InvertiblePermutation()
+    (30): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (31): InvertiblePermutation()
+    (32): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (33): InvertiblePermutation()
+    (34): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (35): InvertiblePermutation()
+    (36): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (37): InvertiblePermutation()
+    (38): MaskedAffineCoupling(
+      (scale_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+        (final_activation): Tanh()
+      )
+      (translate_net): MLP(
+        (net): Sequential(
+          (0): Linear(in_features=784, out_features=512, bias=True)
+          (1): LeakyReLU(negative_slope=0.01, inplace=True)
+          (2): Linear(in_features=512, out_features=512, bias=True)
+          (3): LeakyReLU(negative_slope=0.01, inplace=True)
+          (4): Linear(in_features=512, out_features=784, bias=True)
+        )
+      )
+    )
+    (39): InvertiblePermutation()
+  )
+)
+Training: 100%|████████████████████████████████████████████████████████████████████| 46900/46900 [47:57<00:00, 16.30it/s, epoch=50/50, loss=⠀   1173.5879]
+
+Training complete.

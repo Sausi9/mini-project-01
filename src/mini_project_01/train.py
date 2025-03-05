@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     # Define optimizer
     optimizer = hydra.utils.instantiate(cfg.optimizer, params=model.parameters())
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=25, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     train(
         model,
         optimizer,

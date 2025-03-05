@@ -2,4 +2,4 @@
 _target_: torch.optim.Adam
 
 # Hyperparameters:
-lr: 1e-3
+lr: 1e-4

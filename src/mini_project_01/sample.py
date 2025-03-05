@@ -28,8 +28,8 @@ def sample(model) -> None:
     print("Sampling from the learned model...")
 
     # Load the latest model
-    # wnb = get_latest_model(cfg.models.name)
-    wnb = MODEL_PATH
+    wnb = get_latest_model(cfg.models.name)
+    #wnb = MODEL_PATH
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -40,8 +40,8 @@ def sample(model) -> None:
             samples = model.sample((64, 784))
             samples = samples / 2 + 0.5
         elif cfg.models.name == "flow":
-            temperature = 1.3 # 1 is normal, higher leads to more exploration/randomness
-            samples = model.sample(64, temperature)
+            #temperature = 1.3 # 1 is normal, higher leads to more exploration/randomness
+            samples = model.sample(64)
             # samples = samples / 2 + 0.5
         else:
             samples = model.sample(n_samples=64)
