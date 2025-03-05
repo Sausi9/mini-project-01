@@ -1,5 +1,5 @@
 from models.unet import Unet
-from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net, MultivariateGaussianDecoderFixedVariance
 from data import load_mnist_dataset
 import torch
 from tqdm import tqdm
@@ -92,7 +92,7 @@ def train(
     model_name = cfg.models.name
     if cfg.models.name == VAE_CONSTS:
         prior_name = cfg.priors.name
-        model_path_and_name = f"models/{model_name}/{model_name}_{prior_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt"
+        model_path_and_name = f"models/{model_name}/{model_name}_{prior_name}_continuous_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt"
         print(f"Model saved at: {model_path_and_name}")
     else:
         model_path_and_name = f"models/{model_name}/{model_name}.pt"
@@ -119,7 +119,8 @@ if __name__ == "__main__":
         prior = hydra.utils.instantiate(cfg.priors.prior)
 
         # Define VAE model
-        decoder = BernoulliDecoder(decoder_net(M))
+        # decoder = BernoulliDecoder(decoder_net(M))
+        decoder = MultivariateGaussianDecoderFixedVariance(decoder_net(M), fixed_variance = 0.1)
         encoder = GaussianEncoder(encoder_net(M))
         model = hydra.utils.instantiate(
             cfg.models.model, prior=prior, decoder=decoder, encoder=encoder

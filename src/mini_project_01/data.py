@@ -2,7 +2,11 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from typing import Tuple
+import hydra
+from helpers import VAE_CONSTS
 
+with hydra.initialize(config_path="../../configs", version_base="1.3"):
+    cfg = hydra.compose(config_name="config.yaml")
 
 def logit_transform(x: torch.Tensor, alpha: float = 1e-5) -> torch.Tensor:
     """
@@ -114,6 +118,9 @@ def load_mnist_dataset(
 
     # Flatten, if requested
     if flatten:
+      if cfg.models.name == VAE_CONSTS:
+        base_transforms.append(transforms.Lambda(lambda x: x.squeeze()))
+      else:
         base_transforms.append(transforms.Lambda(lambda x: x.view(-1)))
 
     # Compose everything

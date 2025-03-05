@@ -1,6 +1,6 @@
 import hydra
 import torch
-from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net
+from models.vae import BernoulliDecoder, GaussianEncoder, encoder_net, decoder_net, MultivariateGaussianDecoderFixedVariance
 from data import load_mnist_dataset
 from torchvision.utils import save_image
 from helpers import get_latest_model, DEVICE
@@ -9,12 +9,13 @@ from sklearn.decomposition import PCA
 from models.unet import Unet
 import numpy as np
 from scipy.stats import gaussian_kde
-from helpers import GAUSSIAN
+from helpers import GAUSSIAN, VAE_CONSTS
 
 # Load configuration
 with hydra.initialize(config_path="../../configs", version_base="1.3"):
     cfg = hydra.compose(config_name="config.yaml")
 
+MODEL_PATH = 'models/vae/vae_vamp_2025-03-04_07-44-45.pt'
 
 def sample(model) -> None:
     """
@@ -27,7 +28,8 @@ def sample(model) -> None:
     print("Sampling from the learned model...")
 
     # Load the latest model
-    wnb = get_latest_model(cfg.models.name)
+    # wnb = get_latest_model(cfg.models.name)
+    wnb = MODEL_PATH
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -43,9 +45,13 @@ def sample(model) -> None:
             # samples = samples / 2 + 0.5
         else:
             samples = model.sample(n_samples=64)
-        save_image(samples.view(-1, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
 
-    print(f"Samples saved to samples/sample_{cfg.models.name}.png")
+    if cfg.models.name == VAE_CONSTS:
+      save_image(samples.view(-1, 1, 28, 28), f"samples/sample_{cfg.models.name}_{cfg.priors.name}.png")
+      print(f"Samples saved to samples/sample_{cfg.models.name}_{cfg.priors.name}.png")
+    else:
+      save_image(samples.view(-1, 1, 28, 28), f"samples/sample_{cfg.models.name}.png")
+      print(f"Samples saved to samples/sample_{cfg.models.name}.png")
 
 
 def plot_from_posterior(model, data_loader, M, n_samples=200):
@@ -66,7 +72,7 @@ def plot_from_posterior(model, data_loader, M, n_samples=200):
     print("Creating posterior samples plot...")
 
     # Load the latest model
-    wnb = get_latest_model(cfg.models.name)
+    wnb = MODEL_PATH
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -150,7 +156,7 @@ def plot_from_prior(model, M, n_samples=200):
 
 def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     model.eval()
-    wnb = get_latest_model(cfg.models.name)
+    wnb = MODEL_PATH
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -192,7 +198,7 @@ def plot_prior_and_posterior(model, data_loader, M, n_samples=200):
     print(f"Plot saved to samples/prior_posterior_{cfg.models.name}.png")
 
 
-def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
+def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=1500):
     """
     Plot a contour of the prior density with posterior samples as black dots, handling
     higher-dimensional latent spaces and mixture priors like VampPrior.
@@ -210,7 +216,7 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
     print("Creating prior contour with posterior samples plot...")
 
     # Load the latest model
-    wnb = get_latest_model(cfg.models.name)
+    wnb = MODEL_PATH
     print(f"Loading model: {wnb}")
     model.load_state_dict(torch.load(wnb, map_location=DEVICE))
 
@@ -295,8 +301,8 @@ def plot_prior_contour_with_posterior(model, data_loader, M, n_samples=200):
     # Adjust layout to minimize white space
     plt.tight_layout()
 
-    plt.savefig(f"samples/prior_contour_posterior_{cfg.models.name}.png")
-    print(f"Plot saved to samples/prior_contour_posterior_{cfg.models.name}.png")
+    plt.savefig(f"samples/prior_contour_posterior_{cfg.models.name}_{cfg.priors.name}.png")
+    print(f"Plot saved to samples/prior_contour_posterior_{cfg.models.name}_{cfg.priors.name}.png")
 
     plt.close()  # Close
 
@@ -340,13 +346,13 @@ if __name__ == "__main__":
         sample(model)
 
         # Plot samples from the posterior
-        _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
-        plot_from_posterior(model, test_loader, M)
+        _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size, binarized = cfg.training.binarized)
+        # plot_from_posterior(model, test_loader, M)
 
         # Plot samples from the prior
-        plot_from_prior(model, M)
+        # plot_from_prior(model, M)
 
         # Plot prior and posterior samples
-        plot_prior_and_posterior(model, test_loader, M)
+        # plot_prior_and_posterior(model, test_loader, M)
 
-        plot_prior_contour_with_posterior(model, test_loader, M)
+        # plot_prior_contour_with_posterior(model, test_loader, M)

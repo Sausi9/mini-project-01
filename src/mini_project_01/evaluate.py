@@ -25,8 +25,8 @@ def eval_elbo(model: VAE, data_loader: torch.utils.data.DataLoader, model_name: 
     avg_elbo: [float]
         The average ELBO of the model on the test data.
     """
-    
-    
+
+
     # Load the latest model if no model is provided
     wnb = model_name
 
@@ -71,7 +71,7 @@ def eval_elbo_mean_std(model: VAE, data_loader: torch.utils.data.DataLoader, pri
 
     Save corresponding model name, prior name, elbos and the mean and std of the elbos in a text file.
     """
-    
+
     print(f"Fetching models with {prior} prior")
     vae_models = [f for f in os.listdir("models/vae") if prior in f]
 
@@ -81,7 +81,7 @@ def eval_elbo_mean_std(model: VAE, data_loader: torch.utils.data.DataLoader, pri
     with open(f"samples/elbo_{cfg.models.name}_{prior}.txt", "w") as f:
         f.write(f"Model name: {cfg.models.name}\n")
         f.write(f"Prior name: {prior}\n")
-    
+
     elbos = []
     for model_name in vae_models:
         # Evaluate the ELBO of each model
@@ -93,7 +93,7 @@ def eval_elbo_mean_std(model: VAE, data_loader: torch.utils.data.DataLoader, pri
             f.write(f"Model: {model_name}, ELBO: {elbo}\n")
 
 
-    
+
     # Get the mean and standard deviation of the ELBOs
     elbos = np.array(elbos)
 
@@ -106,7 +106,7 @@ def eval_elbo_mean_std(model: VAE, data_loader: torch.utils.data.DataLoader, pri
         f.write(f"Std ELBO: {std_elbo}\n")
 
     print("Elbo evaluation complete, results saved to file: ", f"samples/elbo_{cfg.models.name}_{prior}.txt")
-    
+
     return mean_elbo, std_elbo
 
 if __name__ == "__main__":
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     ).to(DEVICE)
 
     # Load the MNIST dataset
-    _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size)
+    _, test_loader = load_mnist_dataset(batch_size=cfg.training.batch_size, flatten = True)
 
     # Evaluate the ELBO of models with specified prior
     mean_elbo, std_elbo = eval_elbo_mean_std(model, test_loader, cfg.priors.name)
