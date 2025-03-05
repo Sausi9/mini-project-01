@@ -48,13 +48,11 @@ class VAE(nn.Module):
         Parameters:
         x: [torch.Tensor]
            A tensor of dimension `(batch_size, feature_dim1, feature_dim2, ...)`
-           n_samples: [int]
-           Number of samples to use for the Monte Carlo estimate of the ELBO.
         """
         q = self.encoder(x)
         z = q.rsample()
         elbo = torch.mean(
-            self.decoder(z).log_prob(x) - td.kl_divergence(q, self.prior()), dim=0
+            self.decoder(z).log_prob(x) - td.kl_divergence(q, self.prior()), dim = 0
         )
         return elbo
 
@@ -227,6 +225,38 @@ class BernoulliDecoder(nn.Module):
         logits = self.decoder_net(z)
         return td.Independent(td.Bernoulli(logits=logits), 2)
 
+class MultivariateGaussianDecoderFixedVariance(nn.Module):
+    def __init__(self, decoder_net, fixed_variance=0.1):
+        """
+        Define a Multivariate Gaussian decoder distribution with fixed variance for all pixels.
+
+        Parameters:
+        decoder_net: [torch.nn.Module] - The decoder network
+        fixed_variance: [float] - The fixed variance to use for all pixels
+        """
+        super(MultivariateGaussianDecoderFixedVariance, self).__init__()
+        self.decoder_net = decoder_net
+        self.log_std = nn.Parameter(torch.log(torch.tensor(fixed_variance).sqrt()), requires_grad=False)
+
+    def forward(self, z):
+        """
+        Given a batch of latent variables, return a Multivariate Gaussian distribution with fixed variance.
+        """
+        # Get mean from decoder network
+        params = self.decoder_net(z)
+
+        # Handle both single batch and multiple samples cases
+        if len(z.shape) == 3:  # Case: [num_samples, batch_size, latent_dim]
+            num_samples, batch_size, _ = z.shape
+            mean = params.view(num_samples, batch_size, 28, 28)
+        else:  # Case: [batch_size, latent_dim]
+            batch_size = z.shape[0]
+            mean = params.view(batch_size, 28, 28)
+
+        # Use the fixed variance for all pixels
+        std = torch.exp(self.log_std)
+
+        return td.Independent(td.Normal(loc=mean, scale=std), 2)
 
 # Define the encoder and decoder networks for the encoder and decoder distributions.
 def encoder_net(M):

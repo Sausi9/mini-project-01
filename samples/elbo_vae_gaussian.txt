@@ -1,0 +1,15 @@
+Model name: vae
+Prior name: gaussian
+Model: vae_gaussian_2025-03-04_01-08-54.pt, ELBO: -85.1201370142068
+Model: vae_gaussian_2025-03-03_23-17-26.pt, ELBO: -84.87348660997525
+Model: vae_gaussian_2025-03-03_23-54-19.pt, ELBO: -84.91482680010948
+Model: vae_gaussian_2025-03-03_23-35-29.pt, ELBO: -84.82093091831086
+Model: vae_gaussian_2025-03-03_22-25-07.pt, ELBO: -84.78279045736714
+Model: vae_gaussian_2025-03-04_00-31-38.pt, ELBO: -85.42110379941904
+Model: vae_gaussian_2025-03-04_00-50-17.pt, ELBO: -86.66788016155267
+Model: vae_gaussian_2025-03-03_22-42-19.pt, ELBO: -84.51559127516047
+Model: vae_gaussian_2025-03-03_22-58-42.pt, ELBO: -84.98795211694802
+Model: vae_gaussian_2025-03-04_00-12-58.pt, ELBO: -84.46869139458722
+
+Mean ELBO: -85.0573390547637
+Std ELBO: 0.5966824536545364

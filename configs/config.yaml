@@ -1,8 +1,9 @@
 defaults:
   - _self_
-  - training: training_config_flow
+  - training: training_config
   - optimizer: adam
-  - models: flow
+  - models: vae
+  - priors: vamp
 
 
 flow:
